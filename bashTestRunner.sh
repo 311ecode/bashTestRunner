@@ -1,9 +1,14 @@
-#!/bin/bash
-
 bashTestRunner() {
-  # Get array references
+  # Get array references for inputs
   local -n test_functions_ref=$1
   local -n ignored_tests_ref=$2
+  
+  # Generate a unique identifier for this test run
+  local run_id=$(date +%s%N | sha256sum | head -c 8)
+  
+  # Create uniquely named global arrays
+  declare -ga "results_$run_id"
+  declare -ga "passing_ignored_tests_$run_id"
   
   # Calculate non-ignored tests count
   local counted_tests=0
@@ -26,18 +31,13 @@ bashTestRunner() {
   local ignored_failed=0
   local total_time_start=$(date +%s.%N)
   
-  # Array to store ignored tests that are now passing
-  declare -a passing_ignored_tests
-  
   echo "======================================"
   echo "Starting test suite with $counted_tests tests"
   echo "(Plus ${#ignored_tests_ref[@]} ignored tests)"
   echo "======================================"
   echo ""
   
-  # Results array to store test results
-  declare -a results
-  
+  # Run all tests
   for test_function in "${test_functions_ref[@]}"; do
     # Check if this test is in the ignored list
     local is_ignored=false
@@ -55,12 +55,12 @@ bashTestRunner() {
     
     local test_time_start=$(date +%s.%N)
     
-    # Run the test function
+    # Run the test function and record results
     if $test_function; then
       if $is_ignored; then
         local status="IGNORED (PASS)"
         ((ignored_passed++))
-        passing_ignored_tests+=("$test_function")
+        eval "passing_ignored_tests_$run_id+=(\"$test_function\")"
       else
         local status="PASS"
         ((passed_tests++))
@@ -79,7 +79,8 @@ bashTestRunner() {
     local test_duration=$(echo "$test_time_end - $test_time_start" | bc)
     local formatted_duration=$(printf "%.3f" $test_duration)
     
-    results+=("$status: $test_function (${formatted_duration}s)")
+    # Store result in the uniquely named array
+    eval "results_$run_id+=(\"$status: $test_function (${formatted_duration}s)\")"
     
     echo "$status: $test_function completed in ${formatted_duration}s"
     echo "--------------------------------------"
@@ -89,8 +90,14 @@ bashTestRunner() {
   local total_time_end=$(date +%s.%N)
   local total_duration=$(echo "$total_time_end - $total_time_start" | bc)
   
-  bashTestRunner-results results passing_ignored_tests "$passed_tests" "$failed_tests" \
-    "$ignored_passed" "$ignored_failed" "$counted_tests" "${#ignored_tests_ref[@]}" "$total_duration"
+  # Pass the dynamically named arrays to the results function
+  bashTestRunner-results "results_$run_id" "passing_ignored_tests_$run_id" \
+    "$passed_tests" "$failed_tests" "$ignored_passed" "$ignored_failed" \
+    "$counted_tests" "${#ignored_tests_ref[@]}" "$total_duration"
+  
+  # Clean up our uniquely named arrays
+  unset "results_$run_id"
+  unset "passing_ignored_tests_$run_id"
   
   return $?
 }
