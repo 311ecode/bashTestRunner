@@ -1,3 +1,5 @@
+#!/bin/bash
+
 bashTestRunner() {
   # Get array references for inputs
   local -n test_functions_ref=$1
@@ -9,6 +11,7 @@ bashTestRunner() {
   # Create uniquely named global arrays
   declare -ga "results_$run_id"
   declare -ga "passing_ignored_tests_$run_id"
+  declare -gA "metrics_$run_id"
   
   # Calculate non-ignored tests count
   local counted_tests=0
@@ -90,14 +93,25 @@ bashTestRunner() {
   local total_time_end=$(date +%s.%N)
   local total_duration=$(echo "$total_time_end - $total_time_start" | bc)
   
-  # Pass the dynamically named arrays to the results function
-  bashTestRunner-results "results_$run_id" "passing_ignored_tests_$run_id" \
-    "$passed_tests" "$failed_tests" "$ignored_passed" "$ignored_failed" \
-    "$counted_tests" "${#ignored_tests_ref[@]}" "$total_duration"
+  # Create associative array for metrics
+  eval "metrics_$run_id=(
+    [passed_tests]=$passed_tests
+    [failed_tests]=$failed_tests
+    [ignored_passed]=$ignored_passed
+    [ignored_failed]=$ignored_failed
+    [counted_tests]=$counted_tests
+    [ignored_tests_count]=${#ignored_tests_ref[@]}
+    [total_duration]=$total_duration
+  )"
+  
+  # Call the new functions
+  bashTestRunner-printSummary "results_$run_id" "passing_ignored_tests_$run_id" "metrics_$run_id"
+  bashTestRunner-evaluateStatus "metrics_$run_id"
   
   # Clean up our uniquely named arrays
   unset "results_$run_id"
   unset "passing_ignored_tests_$run_id"
+  unset "metrics_$run_id"
   
   return $?
 }
