@@ -7,7 +7,8 @@ bashTestRunnerRunAllTests() {
   local test_suites=(
     "basicTestSuite"
     "embeddedTestSuite"
-    "failureStatusTestSuite"  # Add our new test suite
+    "failureStatusTestSuite"
+    "bashTestRunner_ignoredFailureTestSuite"
   )
   
   local ignored_suites=(
