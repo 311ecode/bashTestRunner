@@ -59,8 +59,55 @@ bashTestRunner() {
     
     local test_time_start=$(date +%s.%N)
     
-    # Run the test function and record results
-    if $test_function; then
+    # Save current directory
+    local original_dir=$(pwd)
+    
+    # Create temporary file to save global variables that might be overwritten
+    local tmpfile=$(mktemp)
+    
+    # If these variables exist, save them to our temp file
+    if declare -p test_functions &>/dev/null; then
+      echo "test_functions_exist=1" >> "$tmpfile"
+      declare -p test_functions >> "$tmpfile"
+    else
+      echo "test_functions_exist=0" >> "$tmpfile"
+    fi
+    
+    if declare -p ignored_tests &>/dev/null; then
+      echo "ignored_tests_exist=1" >> "$tmpfile"
+      declare -p ignored_tests >> "$tmpfile"
+    else
+      echo "ignored_tests_exist=0" >> "$tmpfile"
+    fi
+    
+    # Unset the variables to prevent interference with nested tests
+    unset test_functions 2>/dev/null || true
+    unset ignored_tests 2>/dev/null || true
+    
+    # Change to the test directory
+    cd "$testPwd"
+    
+    # Execute the test function directly
+    $test_function
+    local test_result=$?
+    
+    # Restore original directory
+    cd "$original_dir"
+    
+    # Restore saved variables from our temp file
+    source "$tmpfile"
+    if [[ "$test_functions_exist" == "1" ]]; then
+      eval "$(grep "^test_functions=" "$tmpfile")"
+    fi
+    
+    if [[ "$ignored_tests_exist" == "1" ]]; then
+      eval "$(grep "^ignored_tests=" "$tmpfile")"
+    fi
+    
+    # Clean up temp file
+    rm -f "$tmpfile"
+    
+    if [[ $test_result -eq 0 ]]; then
       if $is_ignored; then
         local status="IGNORED (PASS)"
         ((ignored_passed++))
