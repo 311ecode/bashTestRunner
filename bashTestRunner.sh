@@ -13,6 +13,7 @@ bashTestRunner() {
   declare -ga "results_$run_id"
   declare -ga "passing_ignored_tests_$run_id"
   declare -gA "metrics_$run_id"
+  declare -gA "test_durations_$run_id"  # New array to store test function durations
   
   # Calculate non-ignored tests count
   local counted_tests=0
@@ -43,6 +44,9 @@ bashTestRunner() {
   
   # Run all tests
   for test_function in "${test_functions_ref[@]}"; do
+    # Track function execution time
+    local function_time_start=$(date +%s.%N)
+    
     # Check if this test is in the ignored list
     local is_ignored=false
     for ignored in "${ignored_tests_ref[@]}"; do
@@ -133,6 +137,11 @@ bashTestRunner() {
     # Store result in the uniquely named array
     eval "results_$run_id+=(\"$status: $test_function (${formatted_duration}s)\")"
     
+    # Calculate and store function total duration
+    local function_time_end=$(date +%s.%N)
+    local function_duration=$(echo "$function_time_end - $function_time_start" | bc)
+    eval "test_durations_$run_id[\"$test_function\"]=$function_duration"
+    
     echo "$status: $test_function completed in ${formatted_duration}s"
     echo "--------------------------------------"
     echo ""
@@ -152,14 +161,15 @@ bashTestRunner() {
     [total_duration]=$total_duration
   )"
   
-  # Call the new functions - properly pass the reference to test_functions_ref
-  bashTestRunner-printSummary "results_$run_id" "passing_ignored_tests_$run_id" "metrics_$run_id" "$1"
+  # Call the new functions - properly pass the reference to test_functions_ref and test_durations
+  bashTestRunner-printSummary "results_$run_id" "passing_ignored_tests_$run_id" "metrics_$run_id" "$1" "test_durations_$run_id"
   bashTestRunner-evaluateStatus "metrics_$run_id"
   
   # Clean up our uniquely named arrays
   unset "results_$run_id"
   unset "passing_ignored_tests_$run_id"
   unset "metrics_$run_id"
+  unset "test_durations_$run_id"
   
   cd "${testPwd}"
 
