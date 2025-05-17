@@ -4,6 +4,7 @@ bashTestRunner() {
   # Get array references for inputs
   local -n test_functions_ref=$1
   local -n ignored_tests_ref=$2
+  local testPwd="$(pwd)"
   
   # Generate a unique identifier for this test run
   local run_id=$(date +%s%N | sha256sum | head -c 8)
@@ -113,5 +114,7 @@ bashTestRunner() {
   unset "passing_ignored_tests_$run_id"
   unset "metrics_$run_id"
   
+  cd "${testPwd}"
+
   return $?
 }
