@@ -152,8 +152,8 @@ bashTestRunner() {
     [total_duration]=$total_duration
   )"
   
-  # Call the new functions
-  bashTestRunner-printSummary "results_$run_id" "passing_ignored_tests_$run_id" "metrics_$run_id"
+  # Call the new functions - properly pass the reference to test_functions_ref
+  bashTestRunner-printSummary "results_$run_id" "passing_ignored_tests_$run_id" "metrics_$run_id" "$1"
   bashTestRunner-evaluateStatus "metrics_$run_id"
   
   # Clean up our uniquely named arrays
