@@ -166,6 +166,7 @@ bashTestRunner() {
   # Call the summary function with all collected data
   bashTestRunner-printSummary "results_$run_id" "passing_ignored_tests_$run_id" "metrics_$run_id" "$1" "suite_durations_$run_id"
   bashTestRunner-evaluateStatus "metrics_$run_id"
+  local final_status=$?
   
   # Clean up our uniquely named arrays
   unset "results_$run_id"
@@ -175,5 +176,6 @@ bashTestRunner() {
   
   cd "${testPwd}"
 
-  return $?
+  # This is the key change - explicitly return the status from evaluateStatus
+  return $final_status
 }
