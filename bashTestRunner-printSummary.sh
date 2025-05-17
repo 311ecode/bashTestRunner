@@ -4,9 +4,7 @@ bashTestRunner-printSummary() {
   local -n passing_ignored_tests_ref=$2
   local -n metrics_ref=$3
   local -n test_functions_ref=$4
-  local -n test_durations_ref=$5
-  local -n suite_durations_ref=$6
-  local -n all_tests_ref=$7
+  local -n suite_durations_ref=$5
   
   local formatted_total_duration=$(printf "%.3f" "${metrics_ref[total_duration]}")
   
@@ -33,18 +31,6 @@ bashTestRunner-printSummary() {
     local duration=$(printf "%.3f" "${suite_durations_ref[$test_func]}")
     echo " - $test_func (${duration}s)"
   done
-  
-  # If requested, show individual test durations
-  if [ -v SHOW_INDIVIDUAL_TIMES ] && [ "$SHOW_INDIVIDUAL_TIMES" = "1" ]; then
-    echo ""
-    echo "Individual test durations:"
-    for test in "${all_tests_ref[@]}"; do
-      if [ -v "test_durations_ref[$test]" ]; then
-        local duration=$(printf "%.3f" "${test_durations_ref[$test]}")
-        echo " - $test: ${duration}s"
-      fi
-    done
-  fi
   
   if [ ${#passing_ignored_tests_ref[@]} -gt 0 ]; then
     echo ""

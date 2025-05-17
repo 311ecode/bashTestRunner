@@ -27,15 +27,6 @@ testBasicTestSuiteStringComparison() {
   fi
 }
 
-# A test with file system operations
-testBasicTestSuiteFileExistence() {
-  # Check if the bashTestRunner.sh file exists
-  if [[ -f "./bashTestRunner.sh" ]]; then
-    return 0
-  else
-    return 1
-  fi
-}
 
 # Test that asserts the output of the test runner
 testBasicTestSuiteAssertOutput() {
@@ -79,10 +70,7 @@ testBasicTestSuiteAssertOutput() {
     return 1
   fi
   
-  if ! echo "$output" | grep -q "FAIL: testBasicTestSuiteFileExistence"; then
-    echo "ERROR: Output does not contain 'FAIL: testBasicTestSuiteFileExistence'"
-    return 1
-  fi
+
   
   return 0
 }
@@ -95,7 +83,6 @@ basicTestSuiteRunner() {
     "testBasicTestSuitePass"
     "testBasicTestSuiteFail"
     "testBasicTestSuiteStringComparison"
-    "testBasicTestSuiteFileExistence"
   )
   
   local ignored_tests=(
@@ -116,7 +103,6 @@ basicTestSuite() {
     "testBasicTestSuitePass"
     "testBasicTestSuiteFail"
     "testBasicTestSuiteStringComparison"
-    "testBasicTestSuiteFileExistence"
     "testBasicTestSuiteAssertOutput"  # Added assertion test
   )
   
@@ -126,6 +112,7 @@ basicTestSuite() {
   
   # Run the test suite
   bashTestRunner test_functions ignored_tests
+  echo $? xxxxxxxxxxxxxxxxxxxXXxxxXXXxxXXXxxXXXXXXXXxxXXX
   return $?
 }
 

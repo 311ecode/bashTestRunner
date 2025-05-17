@@ -13,9 +13,7 @@ bashTestRunner() {
   declare -ga "results_$run_id"
   declare -ga "passing_ignored_tests_$run_id"
   declare -gA "metrics_$run_id"
-  declare -gA "test_durations_$run_id"  # For individual test durations
-  declare -gA "suite_durations_$run_id"  # For suite durations
-  declare -ga "all_tests_$run_id"  # To track all tests that were executed
+  declare -gA "suite_durations_$run_id"  # For test suite durations
   
   # Calculate non-ignored tests count
   local counted_tests=0
@@ -63,8 +61,8 @@ bashTestRunner() {
       echo "(Note: This test will be ignored in final results)"
     fi
     
-    # Save the current results array length to track new results
-    eval "local prev_results_count=\${#results_$run_id[@]}"
+    # Create result collection arrays for nested tests
+    local test_time_start=$(date +%s.%N)
     
     # Save current directory
     local original_dir=$(pwd)
@@ -87,9 +85,6 @@ bashTestRunner() {
       echo "ignored_tests_exist=0" >> "$tmpfile"
     fi
     
-    # Create result collection arrays for nested tests
-    declare -ga "nested_results_$run_id"
-    
     # Unset the variables to prevent interference with nested tests
     unset test_functions 2>/dev/null || true
     unset ignored_tests 2>/dev/null || true
@@ -100,20 +95,6 @@ bashTestRunner() {
     # Execute the test function directly
     $test_function
     local test_result=$?
-    
-    # Get nested test results if any
-    if declare -p "nested_results_$run_id" &>/dev/null; then
-      eval "local nested_count=\${#nested_results_$run_id[@]}"
-      if [ "$nested_count" -gt 0 ]; then
-        # Add nested results to main results array
-        eval "for nested in \"\${nested_results_$run_id[@]}\"; do
-          results_$run_id+=(\"\$nested\")
-          all_tests_$run_id+=(\"\$nested\")
-        done"
-      fi
-      # Clean up the nested results array
-      unset "nested_results_$run_id"
-    fi
     
     # Restore original directory
     cd "$original_dir"
@@ -131,47 +112,39 @@ bashTestRunner() {
     # Clean up temp file
     rm -f "$tmpfile"
     
-    # Check if any new results were added
-    eval "local new_results_count=\${#results_$run_id[@]}"
-    if [ "$new_results_count" -eq "$prev_results_count" ]; then
-      # No nested results were added, so this was a direct test
-      local test_time_start=$(date +%s.%N)
-      if [[ $test_result -eq 0 ]]; then
-        if $is_ignored; then
-          local status="IGNORED (PASS)"
-          ((ignored_passed++))
-          eval "passing_ignored_tests_$run_id+=(\"$test_function\")"
-        else
-          local status="PASS"
-          ((passed_tests++))
-        fi
+    # Record the test result
+    local test_time_end=$(date +%s.%N)
+    local test_duration=$(echo "$test_time_end - $test_time_start" | bc)
+    local formatted_duration=$(printf "%.3f" $test_duration)
+    
+    if [[ $test_result -eq 0 ]]; then
+      if $is_ignored; then
+        local status="IGNORED (PASS)"
+        ((ignored_passed++))
+        eval "passing_ignored_tests_$run_id+=(\"$test_function\")"
       else
-        if $is_ignored; then
-          local status="IGNORED (FAIL)"
-          ((ignored_failed++))
-        else
-          local status="FAIL"
-          ((failed_tests++))
-        fi
+        local status="PASS"
+        ((passed_tests++))
       fi
-      
-      local test_time_end=$(date +%s.%N)
-      local test_duration=$(echo "$test_time_end - $test_time_start" | bc)
-      local formatted_duration=$(printf "%.3f" $test_duration)
-      
-      # Store result in the uniquely named array
-      eval "results_$run_id+=(\"$status: $test_function (${formatted_duration}s)\")"
-      eval "test_durations_$run_id[\"$test_function\"]=$test_duration"
-      eval "all_tests_$run_id+=(\"$test_function\")"
+    else
+      if $is_ignored; then
+        local status="IGNORED (FAIL)"
+        ((ignored_failed++))
+      else
+        local status="FAIL"
+        ((failed_tests++))
+      fi
     fi
     
-    # Calculate and store function/suite total duration
+    # Store result in the uniquely named array
+    eval "results_$run_id+=(\"$status: $test_function (${formatted_duration}s)\")"
+    
+    # Calculate and store suite total duration
     local suite_time_end=$(date +%s.%N)
     local suite_duration=$(echo "$suite_time_end - $suite_time_start" | bc)
     eval "suite_durations_$run_id[\"$test_function\"]=$suite_duration"
     
-    local formatted_suite_duration=$(printf "%.3f" $suite_duration)
-    echo "$test_function completed in ${formatted_suite_duration}s (total suite time)"
+    echo "$status: $test_function completed in ${formatted_duration}s"
     echo "--------------------------------------"
     echo ""
   done
@@ -191,16 +164,14 @@ bashTestRunner() {
   )"
   
   # Call the summary function with all collected data
-  bashTestRunner-printSummary "results_$run_id" "passing_ignored_tests_$run_id" "metrics_$run_id" "$1" "test_durations_$run_id" "suite_durations_$run_id" "all_tests_$run_id"
+  bashTestRunner-printSummary "results_$run_id" "passing_ignored_tests_$run_id" "metrics_$run_id" "$1" "suite_durations_$run_id"
   bashTestRunner-evaluateStatus "metrics_$run_id"
   
   # Clean up our uniquely named arrays
   unset "results_$run_id"
   unset "passing_ignored_tests_$run_id"
   unset "metrics_$run_id"
-  unset "test_durations_$run_id"
   unset "suite_durations_$run_id"
-  unset "all_tests_$run_id"
   
   cd "${testPwd}"
 

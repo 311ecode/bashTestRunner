@@ -1,8 +1,5 @@
 #!/bin/bash
-# Main script to run all test suites
-
-# Run all test suites using bashTestRunner
-runAllTests() {
+bashTestRunnerRunAllTests() {
   # Fix for localization issue with decimal points
   export LC_NUMERIC=C
   
