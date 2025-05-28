@@ -1,4 +1,5 @@
 #!/bin/bash
+# Copyright © 2025 Imre Toth <tothimre@gmail.com> - Proprietary Software. See LICENSE file for terms.
 bashTestRunnerRunAllTests() {
   # Fix for localization issue with decimal points
   export LC_NUMERIC=C

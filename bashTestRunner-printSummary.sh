@@ -1,4 +1,5 @@
 #!/bin/bash
+# Copyright © 2025 Imre Toth <tothimre@gmail.com> - Proprietary Software. See LICENSE file for terms.
 bashTestRunner-printSummary() {
   local -n results_ref=$1
   local -n passing_ignored_tests_ref=$2

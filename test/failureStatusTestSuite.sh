@@ -1,4 +1,5 @@
 #!/bin/bash
+# Copyright © 2025 Imre Toth <tothimre@gmail.com> - Proprietary Software. See LICENSE file for terms.
 # Test suite to verify that the test runner returns non-zero status on failure
 
 # A test that will pass

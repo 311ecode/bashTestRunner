@@ -1,4 +1,5 @@
 #!/bin/bash
+# Copyright © 2025 Imre Toth <tothimre@gmail.com> - Proprietary Software. See LICENSE file for terms.
 bashTestRunner-evaluateStatus() {
   local -n metrics_ref=$1
   
