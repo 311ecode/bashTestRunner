@@ -94,6 +94,7 @@ The framework includes several example test suites that demonstrate its capabili
 2. `embeddedTestSuite.sh` - Tests that run other test suites
 3. `failureStatusTestSuite.sh` - Verifies failure status codes
 4. `ignoredFailureTestSuite.sh` - Tests ignored failure handling
+5. `missingTestSuite.sh` - Verifies handling of missing test functions
 
 ## Best Practices
 
