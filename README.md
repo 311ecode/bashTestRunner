@@ -95,6 +95,7 @@ The framework includes several example test suites that demonstrate its capabili
 3. `failureStatusTestSuite.sh` - Verifies failure status codes
 4. `ignoredFailureTestSuite.sh` - Tests ignored failure handling
 5. `missingTestSuite.sh` - Verifies handling of missing test functions
+6. `bashTestRunnerTrapTestSuite.sh` - Tests using trap in test functions
 
 ## Best Practices
 
