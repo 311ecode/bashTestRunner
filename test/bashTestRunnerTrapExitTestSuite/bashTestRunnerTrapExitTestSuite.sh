@@ -1,17 +1,19 @@
 #!/usr/bin/env bash
 # Copyright © 2025 Imre Toth <tothimre@gmail.com> - Proprietary Software. See LICENSE file for terms.
+# Test suite for bashTestRunner where test functions use the trap function on EXIT
+
 # Run the test suite
-bashTestRunnerTrapTestSuite() {
+bashTestRunnerTrapExitTestSuite() {
   # Fix for localization issue with decimal points
   export LC_NUMERIC=C
     
   local test_functions=(
-    "bashTestRunnerTrapTestSuiteTrapFail"
-    "bashTestRunnerTrapTestSuiteTrapPass"
+    "bashTestRunnerTrapExitTestSuiteTrapExitPass"
+    "bashTestRunnerTrapExitTestSuiteTrapExitFail"
   )
   
   local ignored_tests=(
-    "bashTestRunnerTrapTestSuiteTrapFail"  # We're ignoring the failing test for this example
+    "bashTestRunnerTrapExitTestSuiteTrapExitFail"  # Ignoring the failing test
   )
   
   # Run the test suite
@@ -21,5 +23,5 @@ bashTestRunnerTrapTestSuite() {
 
 # Execute the test suite if this script is run directly
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-  bashTestRunnerTrapTestSuite
+  bashTestRunnerTrapExitTestSuite
 fi

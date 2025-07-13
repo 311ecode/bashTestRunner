@@ -16,6 +16,7 @@ bashTestRunnerRunAllTests() {
     "bashTestRunnerLogFilePathTestSuite"
     "bashTestRunnerMissingTestSuite"
     "bashTestRunnerTrapTestSuite"
+    "bashTestRunnerTrapExitTestSuite"
   )
   
   local ignored_suites=(

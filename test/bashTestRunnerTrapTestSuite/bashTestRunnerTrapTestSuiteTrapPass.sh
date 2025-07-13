@@ -19,7 +19,7 @@ bashTestRunnerTrapTestSuiteTrapPass() {
     echo "ERROR: Trap triggered unexpectedly"
     return 1
   else
-    echo "SUCCESS: No error, trap did not trigger as expected
+    echo "SUCCESS: No error, trap did not trigger as expected"
     return 0
   fi
 }
