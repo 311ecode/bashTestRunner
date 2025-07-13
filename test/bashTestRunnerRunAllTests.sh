@@ -1,13 +1,6 @@
 #!/usr/bin/env bash
 # Copyright © 2025 Imre Toth <tothimre@gmail.com> - Proprietary Software. See LICENSE file for terms.
 
-# Source the framework and all test suite files
-source ../bashTestRunner.sh
-source ./basicTestSuite.sh
-source ./embeddedTestSuite.sh
-source ./failureStatusTestSuite.sh
-source ./ignoredFailureTestSuite.sh
-source ./nestedTestNamesSuite.sh
 
 bashTestRunnerRunAllTests() {
   # Fix for localization issue with decimal points

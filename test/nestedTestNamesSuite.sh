@@ -58,10 +58,16 @@ testVerifyNestedTestNames() {
   
   local outer_ignored=()
   
+  # Create a temporary file for capturing output
+  local temp_output=$(mktemp)
+  
   # Capture output and result from running the outer bashTestRunner
-  local output
-  output=$(bashTestRunner outer_tests outer_ignored 2>&1)
+  bashTestRunner outer_tests outer_ignored > "$temp_output" 2>&1
   local result=$?
+  
+  # Read the captured output
+  local output=$(cat "$temp_output")
+  rm -f "$temp_output"
   
   local errors=""
   

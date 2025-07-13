@@ -2,7 +2,7 @@
 # Copyright © 2025 Imre Toth <tothimre@gmail.com> - Proprietary Software. See LICENSE file for terms.
 # Test suite to verify that the test runner returns non-zero status on failure
 
-# A test that will pass
+# A simple test that will pass
 bashTestRunner_testFailureStatusPass() {
   echo "Running a test that will pass"
   return 0
@@ -18,9 +18,6 @@ bashTestRunner_testFailureStatusFail() {
 testVerifyReturnStatus() {
   echo "Verifying that the test runner returns non-zero status when tests fail"
   
-  # Create a temporary file to capture the return code
-  local temp_output=$(mktemp)
-  
   # Create test functions for this verification
   local test_functions=(
     "bashTestRunner_testFailureStatusPass"
@@ -30,14 +27,19 @@ testVerifyReturnStatus() {
   # No tests are ignored - we want the failure to count
   local ignored_tests=()
   
-  # Run bash test runner in a subshell to capture its return code
-  (
-    bashTestRunner test_functions ignored_tests > /dev/null 2>&1
-    echo $? > "$temp_output"
-  )
+  # Create a temporary file for capturing output
+  local temp_output=$(mktemp)
   
-  # Read the captured return code
-  local return_code=$(cat "$temp_output")
+  # Run bash test runner and capture output and exit status
+  bashTestRunner test_functions ignored_tests > "$temp_output" 2>&1
+  local return_code=$?
+  
+  # Display the output if debug is enabled
+  if [[ -n "$DEBUG" ]]; then
+    echo "DEBUG: Inner test runner output:" >&2
+    cat "$temp_output" >&2
+  fi
+  
   rm -f "$temp_output"
   
   echo "bashTestRunner returned: $return_code"

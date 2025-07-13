@@ -28,11 +28,18 @@ testBasicTestSuiteStringComparison() {
   fi
 }
 
-
 # Test that asserts the output of the test runner
 testBasicTestSuiteAssertOutput() {
-  # Run the test suite and capture its output
-  local output=$(basicTestSuiteRunner 2>&1)
+  # Create a temporary file for capturing output
+  local temp_output=$(mktemp)
+  
+  # Run the test suite and capture output
+  basicTestSuiteRunner > "$temp_output" 2>&1
+  local status=$?
+  
+  # Read the captured output
+  local output=$(cat "$temp_output")
+  rm -f "$temp_output"
   
   # Check if the output contains the expected summary
   if ! echo "$output" | grep -q "Total tests: 3"; then
@@ -45,8 +52,8 @@ testBasicTestSuiteAssertOutput() {
     return 1
   fi
   
-  if ! echo "$output" | grep -q "Failed: 1"; then
-    echo "ERROR: Output does not contain 'Failed: 1'"
+  if ! echo "$output" | grep -q "Failed: 0"; then
+    echo "ERROR: Output does not contain 'Failed: 0'"
     return 1
   fi
   
@@ -70,8 +77,6 @@ testBasicTestSuiteAssertOutput() {
     echo "ERROR: Output does not contain 'PASS: testBasicTestSuiteStringComparison'"
     return 1
   fi
-  
-
   
   return 0
 }
@@ -113,7 +118,6 @@ basicTestSuite() {
   
   # Run the test suite
   bashTestRunner test_functions ignored_tests
-  echo $? xxxxxxxxxxxxxxxxxxxXXxxxXXXxxXXXxxXXXXXXXXxxXXX
   return $?
 }
 

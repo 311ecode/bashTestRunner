@@ -19,6 +19,13 @@ Parameters:
 - `<test_functions_array>`: Name of an array variable containing all test functions to run
 - `<ignored_tests_array>`: Name of an array variable containing tests to ignore
 
+The function will print all output in real-time to stdout/stderr, collect the detailed output in a temporary log file, print the path to the log file, and return the status code.
+To view the results later:
+```bash
+log_path=$(bashTestRunner myTests ignored | tail -1)
+cat "$log_path"
+```
+
 Example:
 ```bash
 source bashTestRunner.sh
@@ -40,7 +47,7 @@ Use `-h` or `--help` for usage information (handled by upper management layer).
 - Ignored tests are excluded from failure counts
 
 ### Reporting
-- Detailed summary of test results
+- Detailed summary of test results printed to stdout and collected in the log file
 - Individual test status (PASS/FAIL/IGNORED)
 - Execution time tracking
 - Recommendations for passing ignored tests
@@ -55,7 +62,7 @@ Use `-h` or `--help` for usage information (handled by upper management layer).
 Each test function should:
 - Return 0 for success
 - Return non-zero for failure
-- Output any diagnostic information to stdout/stderr
+- Output any diagnostic information to stdout/stderr (will be printed in real-time and captured in log)
 
 Example test:
 ```bash
@@ -76,6 +83,8 @@ bashTestRunner can handle nested test suites by:
 - Preserving the calling environment
 - Managing directory changes
 - Isolating test function arrays
+- Appending output to the top-level log file
+- Printing output in real-time to stdout
 
 ## Included Test Suites
 
@@ -98,11 +107,29 @@ The framework includes several example test suites that demonstrate its capabili
 
 ```
 ======================================
+Starting test suite with 3 tests
+(Plus 1 ignored tests)
+======================================
+
+Running test: testExample1
+PASS: testExample1 completed in 0.123s
+--------------------------------------
+
+Running test: testExample2
+(Note: This test will be ignored in final results)
+IGNORED (FAIL): testExample2 completed in 0.456s
+--------------------------------------
+
+Running test: testExample3
+PASS: testExample3 completed in 3.656s
+--------------------------------------
+
+======================================
 TEST SUMMARY
 ======================================
 Total tests: 3
 Passed: 2
-Failed: 1
+Failed: 0
 Ignored tests: 1 (Passed: 0, Failed: 1)
 Total time: 4.235s
 
@@ -117,10 +144,11 @@ Test functions:
  - testExample3 (3.656s)
 
 FINAL STATUS:
-FAIL: Test suite completed with 1 failed tests
+PASS: All 2 tests passed successfully
 ======================================
+Log file: /tmp/bashTestRunner.XXXXXX.log
 ```
 
 ## Dependencies
 - Bash 4.0 or later (for associative arrays)
-- Basic Unix utilities (date, bc, etc.)
+- Basic Unix utilities (date, bc, tee, etc.)

@@ -5,6 +5,7 @@ bashTestRunner-executeTests() {
   local -n ignored_tests_ref=$2
   local run_id=$3
   local testPwd=$4
+  local log_file=$5
   
   local passed_tests=0
   local failed_tests=0
@@ -13,6 +14,14 @@ bashTestRunner-executeTests() {
   local total_time_start=$(date +%s.%N)
   
   local test_function  # Declare as local to prevent pollution in nested calls
+  
+  if [[ -n "$DEBUG" ]]; then
+    echo "DEBUG: executeTests starting with run_id=$run_id" >&2
+    echo "DEBUG: Test functions: ${test_functions_ref[*]}" >&2
+    echo "DEBUG: Ignored tests: ${ignored_tests_ref[*]}" >&2
+    echo "DEBUG: Test functions count: ${#test_functions_ref[@]}" >&2
+    echo "DEBUG: Ignored tests count: ${#ignored_tests_ref[@]}" >&2
+  fi
   
   # Run all tests
   for test_function in "${test_functions_ref[@]}"; do
@@ -28,9 +37,13 @@ bashTestRunner-executeTests() {
       fi
     done
     
-    echo "Running test: $test_function"
+    if [[ -n "$DEBUG" ]]; then
+      echo "DEBUG: Running test function: $test_function (ignored=$is_ignored)" >&2
+    fi
+    
+    echo "Running test: $test_function" | tee -a "$log_file"
     if $is_ignored; then
-      echo "(Note: This test will be ignored in final results)"
+      echo "(Note: This test will be ignored in final results)" | tee -a "$log_file"
     fi
     
     # Create result collection arrays for nested tests
@@ -65,8 +78,12 @@ bashTestRunner-executeTests() {
     cd "$testPwd"
     
     # Execute the test function directly
-    $test_function
-    local test_result=$?
+    $test_function 2>&1 | tee -a "$log_file"
+    local test_result=${PIPESTATUS[0]}
+    
+    if [[ -n "$DEBUG" ]]; then
+      echo "DEBUG: Test $test_function returned exit code: $test_result" >&2
+    fi
     
     # Restore original directory
     cd "$original_dir"
@@ -108,6 +125,10 @@ bashTestRunner-executeTests() {
       fi
     fi
     
+    if [[ -n "$DEBUG" ]]; then
+      echo "DEBUG: Test result for $test_function: status=$status, passed_tests=$passed_tests, failed_tests=$failed_tests" >&2
+    fi
+    
     # Store result in the uniquely named array
     eval "results_$run_id+=(\"$status: $test_function (${formatted_duration}s)\")"
     
@@ -116,22 +137,35 @@ bashTestRunner-executeTests() {
     local suite_duration=$(echo "$suite_time_end - $suite_time_start" | bc)
     eval "suite_durations_$run_id[\"$test_function\"]=$suite_duration"
     
-    echo "$status: $test_function completed in ${formatted_duration}s"
-    echo "--------------------------------------"
-    echo ""
+    echo "$status: $test_function completed in ${formatted_duration}s" | tee -a "$log_file"
+    echo "--------------------------------------" | tee -a "$log_file"
+    echo "" | tee -a "$log_file"
   done
   
   local total_time_end=$(date +%s.%N)
   local total_duration=$(echo "$total_time_end - $total_time_start" | bc)
   
-  # Create associative array for metrics
-  eval "metrics_$run_id=(
-    [passed_tests]=$passed_tests
-    [failed_tests]=$failed_tests
-    [ignored_passed]=$ignored_passed
-    [ignored_failed]=$ignored_failed
-    [counted_tests]=$counted_tests
-    [ignored_tests_count]=${#ignored_tests_ref[@]}
-    [total_duration]=$total_duration
-  )"
+  # Calculate counted tests (non-ignored tests)
+  local counted_tests=$((passed_tests + failed_tests))
+  
+  # Create associative array for metrics using declare instead of eval
+  declare -gA "metrics_$run_id"
+  eval "metrics_$run_id[passed_tests]=$passed_tests"
+  eval "metrics_$run_id[failed_tests]=$failed_tests"
+  eval "metrics_$run_id[ignored_passed]=$ignored_passed"
+  eval "metrics_$run_id[ignored_failed]=$ignored_failed"
+  eval "metrics_$run_id[counted_tests]=$counted_tests"
+  eval "metrics_$run_id[ignored_tests_count]=${#ignored_tests_ref[@]}"
+  eval "metrics_$run_id[total_duration]=$total_duration"
+  
+  if [[ -n "$DEBUG" ]]; then
+    echo "DEBUG: Final metrics for run_id $run_id:" >&2
+    echo "DEBUG:   passed_tests=$passed_tests" >&2
+    echo "DEBUG:   failed_tests=$failed_tests" >&2
+    echo "DEBUG:   ignored_passed=$ignored_passed" >&2
+    echo "DEBUG:   ignored_failed=$ignored_failed" >&2
+    echo "DEBUG:   counted_tests=$counted_tests" >&2
+    echo "DEBUG:   ignored_tests_count=${#ignored_tests_ref[@]}" >&2
+    echo "DEBUG:   total_duration=$total_duration" >&2
+  fi
 }
