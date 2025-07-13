@@ -3,7 +3,7 @@
 # Basic test suite using bashTestRunner
 
 # Run the test suite
-basicTestSuite() {
+bashTestRunnerBasicTestSuite() {
   # Fix for localization issue with decimal points
   export LC_NUMERIC=C
   

@@ -9,11 +9,11 @@ bashTestRunnerRunAllTests() {
   # Define test functions (our test suites)
   local test_suites=(
     "basicTestSuite"
-    "embeddedTestSuite"
-    "failureStatusTestSuite"
+    "bashTestRunnerEmbeddedTestSuite"
+    "bashTestRunnerFailureStatusTestSuite"
     "bashTestRunner_ignoredFailureTestSuite"
-    "nestedTestNamesSuite"
-    "logFilePathTestSuite"
+    "bashTestRunnerNestedTestNamesSuite"
+    "bashTestRunnerLogFilePathTestSuite"
   )
   
   local ignored_suites=(

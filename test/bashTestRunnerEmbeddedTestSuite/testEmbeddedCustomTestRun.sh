@@ -3,13 +3,13 @@ testEmbeddedCustomTestRun() {
   echo "Running a custom test with controlled test functions"
   
   # Define custom test functions
-  customTestPass() { return 0; }
-  customTestFail() { return 1; }
+  testEmbeddedCustomTestRun_customTestPass() { return 0; }
+  testEmbeddedCustomTestRun_customTestFail() { return 1; }
   
   # Create arrays for the test runner
   local test_functions=(
-    "customTestPass"
-    "customTestFail"
+    "testEmbeddedCustomTestRun_customTestPass"
+    "testEmbeddedCustomTestRun_customTestFail"
   )
   
   local ignored_tests=()

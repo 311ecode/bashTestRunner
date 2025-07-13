@@ -9,7 +9,7 @@
 
 
 # Test that verifies metrics from a custom test run
-tSuite() {
+bashTestRunnerEmbeddedTestSuite() {
   # Fix for localization issue with decimal points
   export LC_NUMERIC=C
   
