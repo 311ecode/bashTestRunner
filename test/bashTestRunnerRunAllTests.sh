@@ -8,7 +8,7 @@ bashTestRunnerRunAllTests() {
   
   # Define test functions (our test suites)
   local test_suites=(
-    "basicTestSuite"
+    "bashTestRunnerBasicTestSuite"
     "bashTestRunnerEmbeddedTestSuite"
     "bashTestRunnerFailureStatusTestSuite"
     "bashTestRunner_ignoredFailureTestSuite"

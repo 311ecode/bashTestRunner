@@ -3,7 +3,7 @@ testEmbeddedRunBasicTestSuite() {
   echo "Running the basic test suite as an embedded test"
   
   # Run the test suite and check its return value
-  basicTestSuite
+  bashTestRunnerBasicTestSuite
   local result=$?
   
   if [[ $result -eq 0 ]]; then
