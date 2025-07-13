@@ -63,4 +63,9 @@ bashTestRunner-printSummary() {
   fi
   
   echo "======================================" | tee -a "$log_file"
+  
+  # Only print log file path for top-level (non-nested) runs
+  if [[ -z "${BASH_TEST_RUNNER_LOG_NESTED}" ]]; then
+    echo "Log file: $log_file" | tee -a "$log_file"
+  fi
 }

@@ -23,15 +23,17 @@ bashTestRunner() {
   declare -gA "metrics_$run_id"
   declare -gA "suite_durations_$run_id"  # For test suite durations
   
-  # Determine log file
+  # Determine log file and nesting level
   local log_file
   local is_nested=false
   if [[ -n "${BASH_TEST_RUNNER_LOG}" ]]; then
     log_file="${BASH_TEST_RUNNER_LOG}"
     is_nested=true
+    export BASH_TEST_RUNNER_LOG_NESTED=1
   else
     log_file=$(mktemp /tmp/bashTestRunner.XXXXXX.log)
     export BASH_TEST_RUNNER_LOG="${log_file}"
+    unset BASH_TEST_RUNNER_LOG_NESTED
   fi
   
   echo "======================================" | tee -a "${log_file}"
