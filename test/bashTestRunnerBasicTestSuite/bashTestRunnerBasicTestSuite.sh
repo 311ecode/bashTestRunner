@@ -8,14 +8,14 @@ bashTestRunnerBasicTestSuite() {
   export LC_NUMERIC=C
   
   local test_functions=(
-    "testBasicTestSuitePass"
-    "testBasicTestSuiteFail"
-    "testBasicTestSuiteStringComparison"
-    "testBasicTestSuiteAssertOutput"  # Added assertion test
+    "bashTestRunnerBasicTestSuitePass"
+    "bashTestRunnerBasicTestSuiteFail"
+    "bashTestRunnerBasicTestSuiteStringComparison"
+    "bashTestRunnerBasicTestSuiteAssertOutput"  # Added assertion test
   )
   
   local ignored_tests=(
-    "testBasicTestSuiteFail"  # We're ignoring the failing test for this example
+    "bashTestRunnerBasicTestSuiteFail"  # We're ignoring the failing test for this example
   )
   
   # Run the test suite
@@ -25,5 +25,5 @@ bashTestRunnerBasicTestSuite() {
 
 # Execute the test suite if this script is run directly
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-  basicTestSuite
+  bashTestRunnerBasicTestSuite
 fi

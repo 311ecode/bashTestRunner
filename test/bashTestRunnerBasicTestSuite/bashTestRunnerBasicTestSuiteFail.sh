@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-testBasicTestSuiteFail() {
+bashTestRunnerBasicTestSuiteFail() {
   echo "Running a simple failing test"
   return 1
 }

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-testBasicTestSuiteStringComparison() {
+bashTestRunnerBasicTestSuiteStringComparison() {
   local str1="hello"
   local str2="hello"
   
