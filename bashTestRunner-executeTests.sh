@@ -12,6 +12,8 @@ bashTestRunner-executeTests() {
   local ignored_failed=0
   local total_time_start=$(date +%s.%N)
   
+  local test_function  # Declare as local to prevent pollution in nested calls
+  
   # Run all tests
   for test_function in "${test_functions_ref[@]}"; do
     # Track function/suite execution time
