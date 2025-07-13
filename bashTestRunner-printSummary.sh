@@ -17,6 +17,7 @@ bashTestRunner-printSummary() {
     echo "DEBUG:   metrics[passed_tests]: ${metrics_ref[passed_tests]}" >&2
     echo "DEBUG:   metrics[failed_tests]: ${metrics_ref[failed_tests]}" >&2
     echo "DEBUG:   metrics[ignored_tests_count]: ${metrics_ref[ignored_tests_count]}" >&2
+    echo "DEBUG:   BASH_TEST_RUNNER_LOG_NESTED: ${BASH_TEST_RUNNER_LOG_NESTED:-unset}" >&2
   fi
   
   echo "======================================" | tee -a "$log_file"
@@ -64,8 +65,16 @@ bashTestRunner-printSummary() {
   
   echo "======================================" | tee -a "$log_file"
   
-  # Only print log file path for top-level (non-nested) runs
+  # Print log file path for top-level (non-nested) runs only
+  # Check if we're NOT in a nested run
   if [[ -z "${BASH_TEST_RUNNER_LOG_NESTED}" ]]; then
+    if [[ -n "$DEBUG" ]]; then
+      echo "DEBUG: This is a top-level run, printing log file path" >&2
+    fi
     echo "Log file: $log_file" | tee -a "$log_file"
+  else
+    if [[ -n "$DEBUG" ]]; then
+      echo "DEBUG: This is a nested run, NOT printing log file path" >&2
+    fi
   fi
 }

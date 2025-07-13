@@ -15,6 +15,8 @@ bashTestRunner() {
     echo "DEBUG: test_functions_ref name=$1, ignored_tests_ref name=$2" >&2
     echo "DEBUG: Test functions: ${test_functions_ref[*]}" >&2
     echo "DEBUG: Ignored tests: ${ignored_tests_ref[*]}" >&2
+    echo "DEBUG: Current BASH_TEST_RUNNER_LOG: ${BASH_TEST_RUNNER_LOG:-unset}" >&2
+    echo "DEBUG: Current BASH_TEST_RUNNER_LOG_NESTED: ${BASH_TEST_RUNNER_LOG_NESTED:-unset}" >&2
   fi
   
   # Create uniquely named global arrays
@@ -27,13 +29,23 @@ bashTestRunner() {
   local log_file
   local is_nested=false
   if [[ -n "${BASH_TEST_RUNNER_LOG}" ]]; then
+    # We're in a nested call - reuse the existing log file
     log_file="${BASH_TEST_RUNNER_LOG}"
     is_nested=true
+    # Set the nested flag to suppress log file path printing in summary
     export BASH_TEST_RUNNER_LOG_NESTED=1
+    if [[ -n "$DEBUG" ]]; then
+      echo "DEBUG: Detected nested call, reusing log file: $log_file" >&2
+    fi
   else
+    # We're in a top-level call - create new log file
     log_file=$(mktemp /tmp/bashTestRunner.XXXXXX.log)
     export BASH_TEST_RUNNER_LOG="${log_file}"
+    # Ensure the nested flag is unset for top-level calls
     unset BASH_TEST_RUNNER_LOG_NESTED
+    if [[ -n "$DEBUG" ]]; then
+      echo "DEBUG: Top-level call, created new log file: $log_file" >&2
+    fi
   fi
   
   echo "======================================" | tee -a "${log_file}"
@@ -54,17 +66,27 @@ bashTestRunner() {
   bashTestRunner-printSummary "results_$run_id" "passing_ignored_tests_$run_id" "metrics_$run_id" "$1" "suite_durations_$run_id" "${log_file}"
   
   # Get the final status BEFORE cleaning up arrays
-    bashTestRunner-evaluateStatus "metrics_${run_id}"
-    local final_status=$?
-    
-    echo "DEBUG: bashTestRunner final_status=$final_status for run_id=$run_id"
-    echo "DEBUG: Metrics at evaluation:"
+  bashTestRunner-evaluateStatus "metrics_${run_id}"
+  local final_status=$?
+  
+  if [[ -n "$DEBUG" ]]; then
+    echo "DEBUG: bashTestRunner final_status=$final_status for run_id=$run_id" >&2
+    echo "DEBUG: Metrics at evaluation:" >&2
     local metric_var
     for metric_var in ignored_tests_count ignored_passed passed_tests failed_tests counted_tests total_duration ignored_failed; do
         local var_name="metrics_${run_id}[${metric_var}]"
-        echo "DEBUG:   ${metric_var} = ${!var_name}"
+        eval "echo \"DEBUG:   ${metric_var} = \${metrics_${run_id}[${metric_var}]}\" >&2"
     done
-    
-    # THIS IS THE FIX - Add this line!
-    return $final_status
+  fi
+  
+  # Clean up environment variables if this was the top-level call
+  if [[ "$is_nested" == false ]]; then
+    if [[ -n "$DEBUG" ]]; then
+      echo "DEBUG: Top-level call finished, cleaning up environment variables" >&2
+    fi
+    unset BASH_TEST_RUNNER_LOG
+    unset BASH_TEST_RUNNER_LOG_NESTED
+  fi
+  
+  return $final_status
 }

@@ -13,6 +13,7 @@ bashTestRunnerRunAllTests() {
     "failureStatusTestSuite"
     "bashTestRunner_ignoredFailureTestSuite"
     "nestedTestNamesSuite"
+    "logFilePathTestSuite"
   )
   
   local ignored_suites=(
