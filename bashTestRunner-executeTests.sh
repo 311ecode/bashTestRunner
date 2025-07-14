@@ -6,6 +6,7 @@ bashTestRunner-executeTests() {
   local run_id=$3
   local testPwd=$4
   local log_file=$5
+  local session_dir=$6
   
   local passed_tests=0
   local failed_tests=0
@@ -21,6 +22,7 @@ bashTestRunner-executeTests() {
     echo "DEBUG: Ignored tests: ${ignored_tests_ref[*]}" >&2
     echo "DEBUG: Test functions count: ${#test_functions_ref[@]}" >&2
     echo "DEBUG: Ignored tests count: ${#ignored_tests_ref[@]}" >&2
+    echo "DEBUG: Session directory: $session_dir" >&2
   fi
   
   # Run all tests
@@ -46,8 +48,8 @@ bashTestRunner-executeTests() {
       echo "(Note: This test will be ignored in final results)" | tee -a "$log_file"
     fi
     
-    # Create per-test temporary log file
-    local per_test_log=$(mktemp /tmp/bashTestRunner_test.XXXXXX.log)
+    # Create per-test log file in session directory
+    local per_test_log="${session_dir}/${test_function}.log"
     
     # Create result collection arrays for nested tests
     local test_time_start=$(date +%s.%N)
@@ -86,9 +88,6 @@ bashTestRunner-executeTests() {
     
     # Append per-test log to main log and print to console for real-time output
     cat "$per_test_log" | tee -a "$log_file"
-    
-    # Clean up per-test log
-    rm -f "$per_test_log"
     
     if [[ -n "$DEBUG" ]]; then
       echo "DEBUG: Test $test_function returned exit code: $test_result" >&2

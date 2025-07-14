@@ -7,6 +7,7 @@ bashTestRunner-printSummary() {
   local -n test_functions_ref=$4
   local -n suite_durations_ref=$5
   local log_file=$6
+  local session_dir=$7
   
   local formatted_total_duration=$(printf "%.3f" "${metrics_ref[total_duration]}")
   
@@ -18,6 +19,7 @@ bashTestRunner-printSummary() {
     echo "DEBUG:   metrics[failed_tests]: ${metrics_ref[failed_tests]}" >&2
     echo "DEBUG:   metrics[ignored_tests_count]: ${metrics_ref[ignored_tests_count]}" >&2
     echo "DEBUG:   BASH_TEST_RUNNER_LOG_NESTED: ${BASH_TEST_RUNNER_LOG_NESTED:-unset}" >&2
+    echo "DEBUG:   Session directory: $session_dir" >&2
   fi
   
   echo "======================================" | tee -a "$log_file"
@@ -65,16 +67,17 @@ bashTestRunner-printSummary() {
   
   echo "======================================" | tee -a "$log_file"
   
-  # Print log file path for top-level (non-nested) runs only
+  # Print session directory path for top-level (non-nested) runs only
   # Check if we're NOT in a nested run
   if [[ -z "${BASH_TEST_RUNNER_LOG_NESTED}" ]]; then
     if [[ -n "$DEBUG" ]]; then
-      echo "DEBUG: This is a top-level run, printing log file path" >&2
+      echo "DEBUG: This is a top-level run, printing session directory path" >&2
     fi
-    echo "Log file: $log_file" | tee -a "$log_file"
+    echo "Session directory: $session_dir" | tee -a "$log_file"
+    echo "Main log file: $log_file" | tee -a "$log_file"
   else
     if [[ -n "$DEBUG" ]]; then
-      echo "DEBUG: This is a nested run, NOT printing log file path" >&2
+      echo "DEBUG: This is a nested run, NOT printing session directory path" >&2
     fi
   fi
 }

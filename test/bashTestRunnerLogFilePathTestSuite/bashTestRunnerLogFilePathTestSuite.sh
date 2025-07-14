@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
 # Copyright © 2025 Imre Toth <tothimre@gmail.com> - Proprietary Software. See LICENSE file for terms.
-# Test suite to verify log file path is correctly reported
+# Test suite to verify session directory path is correctly reported
 
-
-# Main function to run the log file path test suite
+# Main function to run the session directory path test suite
 bashTestRunnerLogFilePathTestSuite() {
   # Fix for localization issue with decimal points
   export LC_NUMERIC=C

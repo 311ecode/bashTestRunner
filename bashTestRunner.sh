@@ -17,7 +17,7 @@ bashTestRunner() {
     echo "DEBUG: test_functions_ref name=$1, ignored_tests_ref name=$2" >&2
     echo "DEBUG: Test functions: ${test_functions_ref[*]}" >&2
     echo "DEBUG: Ignored tests: ${ignored_tests_ref[*]}" >&2
-    echo "DEBUG: Current BASH_TEST_RUNNER_LOG: ${BASH_TEST_RUNNER_LOG:-unset}" >&2
+    echo "DEBUG: Current BASH_TEST_RUNNER_SESSION: ${BASH_TEST_RUNNER_SESSION:-unset}" >&2
     echo "DEBUG: Current BASH_TEST_RUNNER_LOG_NESTED: ${BASH_TEST_RUNNER_LOG_NESTED:-unset}" >&2
   fi
   
@@ -27,14 +27,17 @@ bashTestRunner() {
   declare -gA "metrics_$run_id"
   declare -gA "suite_durations_$run_id"  # For test suite durations
   
-  # Determine log file and nesting level
+  # Determine session directory and nesting level
+  local session_dir
   local log_file
   local is_nested=false
   local nested_was_set=0
   local saved_nested
-  if [[ -n "${BASH_TEST_RUNNER_LOG}" ]]; then
-    # We're in a nested call - reuse the existing log file
-    log_file="${BASH_TEST_RUNNER_LOG}"
+  local session_created_here=false
+  
+  if [[ -n "${BASH_TEST_RUNNER_SESSION}" ]]; then
+    # We're in a nested call - reuse the existing session
+    session_dir="${BASH_TEST_RUNNER_SESSION}"
     is_nested=true
     # Save current nested flag state before setting
     if [[ -v BASH_TEST_RUNNER_LOG_NESTED ]]; then
@@ -44,18 +47,28 @@ bashTestRunner() {
     # Set the nested flag to suppress log file path printing in summary
     export BASH_TEST_RUNNER_LOG_NESTED=1
     if [[ -n "$DEBUG" ]]; then
-      echo "DEBUG: Detected nested call, reusing log file: $log_file" >&2
+      echo "DEBUG: Detected nested call, reusing session: $session_dir" >&2
     fi
   else
-    # We're in a top-level call - create new log file
-    log_file=$(mktemp /tmp/bashTestRunner.XXXXXX.log)
-    export BASH_TEST_RUNNER_LOG="${log_file}"
+    # We're in a top-level call - create new session
+    local timestamp=$(date +%Y%m%d%H%M%S)
+    local session_id=$(date +%s%N | sha256sum | head -c 8)
+    session_dir="/tmp/bashTestRunnerSessions/${timestamp}-${session_id}"
+    
+    # Create session directory
+    mkdir -p "$session_dir"
+    
+    export BASH_TEST_RUNNER_SESSION="${session_dir}"
+    session_created_here=true
     # Ensure the nested flag is unset for top-level calls
     unset BASH_TEST_RUNNER_LOG_NESTED
     if [[ -n "$DEBUG" ]]; then
-      echo "DEBUG: Top-level call, created new log file: $log_file" >&2
+      echo "DEBUG: Top-level call, created new session: $session_dir" >&2
     fi
   fi
+  
+  # Set main log file path
+  log_file="${session_dir}/main.log"
   
   echo "======================================" | tee -a "${log_file}"
   echo "Starting test suite with ${#test_functions_ref[@]} tests" | tee -a "${log_file}"
@@ -64,7 +77,7 @@ bashTestRunner() {
   echo "" | tee -a "${log_file}"
   
   # Execute all tests and collect results
-  bashTestRunner-executeTests "$1" "$2" "$run_id" "$testPwd" "${log_file}"
+  bashTestRunner-executeTests "$1" "$2" "$run_id" "$testPwd" "${log_file}" "${session_dir}"
   
   if [[ -n "$DEBUG" ]]; then
     echo "DEBUG: Metrics after execution for run_id=$run_id:" >&2
@@ -72,7 +85,7 @@ bashTestRunner() {
   fi
   
   # Call the summary function with all collected data
-  bashTestRunner-printSummary "results_$run_id" "passing_ignored_tests_$run_id" "metrics_$run_id" "$1" "suite_durations_$run_id" "${log_file}"
+  bashTestRunner-printSummary "results_$run_id" "passing_ignored_tests_$run_id" "metrics_$run_id" "$1" "suite_durations_$run_id" "${log_file}" "${session_dir}"
   
   # Get the final status BEFORE cleaning up arrays
   bashTestRunner-evaluateStatus "metrics_${run_id}"
@@ -98,11 +111,11 @@ bashTestRunner() {
   fi
   
   # Clean up environment variables if this was the top-level call
-  if [[ "$is_nested" == false ]]; then
+  if [[ "$session_created_here" == true ]]; then
     if [[ -n "$DEBUG" ]]; then
-      echo "DEBUG: Top-level call finished, cleaning up environment variables" >&2
+      echo "DEBUG: Top-level call finished, cleaning up session environment variable" >&2
     fi
-    unset BASH_TEST_RUNNER_LOG
+    unset BASH_TEST_RUNNER_SESSION
     unset BASH_TEST_RUNNER_LOG_NESTED
   fi
   
