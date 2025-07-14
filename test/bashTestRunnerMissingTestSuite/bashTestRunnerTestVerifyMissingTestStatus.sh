@@ -14,9 +14,28 @@ bashTestRunnerTestVerifyMissingTestStatus() {
   # Create a temporary file for capturing output
   local temp_output=$(mktemp)
   
-  # Run bashTestRunner and capture output and exit status
-  bashTestRunner test_functions ignored_tests > "$temp_output" 2>&1
-  local return_code=$?
+  # Save current environment variables
+  local saved_session="${BASH_TEST_RUNNER_SESSION:-}"
+  local saved_nested="${BASH_TEST_RUNNER_LOG_NESTED:-}"
+  
+  # Clear environment to simulate top-level call for clean output capture
+  unset BASH_TEST_RUNNER_SESSION
+  unset BASH_TEST_RUNNER_LOG_NESTED
+  
+  # Run bashTestRunner in a subshell to isolate environment and capture output
+  local return_code
+  (
+    bashTestRunner test_functions ignored_tests
+  ) > "$temp_output" 2>&1
+  return_code=$?
+  
+  # Restore environment variables
+  if [[ -n "$saved_session" ]]; then
+    export BASH_TEST_RUNNER_SESSION="$saved_session"
+  fi
+  if [[ -n "$saved_nested" ]]; then
+    export BASH_TEST_RUNNER_LOG_NESTED="$saved_nested"
+  fi
   
   # Read the captured output
   local output=$(cat "$temp_output")
@@ -33,9 +52,19 @@ bashTestRunnerTestVerifyMissingTestStatus() {
     return 1
   fi
   
-  # Optionally verify error message in output (Bash-specific "command not found")
+  # Verify error message in output (Bash-specific "command not found")
   if ! echo "$output" | grep -q "command not found"; then
     echo "ERROR: Output does not indicate a 'command not found' error for missing test"
+    echo "Expected to find 'command not found' in output"
+    echo "Captured output:"
+    echo "$output"
+    return 1
+  fi
+  
+  # Verify that the test was marked as FAIL
+  if ! echo "$output" | grep -q "FAIL: non_existent_test_function_that_does_not_exist"; then
+    echo "ERROR: Output does not show the missing test as FAIL"
+    echo "Expected to find 'FAIL: non_existent_test_function_that_does_not_exist' in output"
     echo "Captured output:"
     echo "$output"
     return 1

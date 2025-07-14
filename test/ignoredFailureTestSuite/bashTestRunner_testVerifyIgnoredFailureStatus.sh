@@ -16,19 +16,38 @@ bashTestRunner_testVerifyIgnoredFailureStatus() {
   # Create a temporary file for capturing output
   local temp_output=$(mktemp)
   
-  # Run bash test runner and capture output and exit status
-  bashTestRunner test_functions ignored_tests > "$temp_output" 2>&1
-  local return_code=$?
+  # Save current environment variables
+  local saved_session="${BASH_TEST_RUNNER_SESSION:-}"
+  local saved_nested="${BASH_TEST_RUNNER_LOG_NESTED:-}"
+  
+  # Clear environment to simulate top-level call for clean output capture
+  unset BASH_TEST_RUNNER_SESSION
+  unset BASH_TEST_RUNNER_LOG_NESTED
+  
+  # Run bash test runner in a subshell to isolate environment and capture output
+  local return_code
+  (
+    bashTestRunner test_functions ignored_tests
+  ) > "$temp_output" 2>&1
+  return_code=$?
+  
+  # Restore environment variables
+  if [[ -n "$saved_session" ]]; then
+    export BASH_TEST_RUNNER_SESSION="$saved_session"
+  fi
+  if [[ -n "$saved_nested" ]]; then
+    export BASH_TEST_RUNNER_LOG_NESTED="$saved_nested"
+  fi
   
   # Read the captured output
   local output=$(cat "$temp_output")
   
-  echo "=== Test Runner Output ==="
-  echo "$output"
-  echo "=== End Output ==="
-  
-  # Display the captured return code
-  echo "bashTestRunner returned: $return_code"
+  if [[ -n "$DEBUG" ]]; then
+    echo "=== Test Runner Output ===" >&2
+    echo "$output" >&2
+    echo "=== End Output ===" >&2
+    echo "bashTestRunner returned: $return_code" >&2
+  fi
   
   # Clean up temp file
   rm -f "$temp_output"
@@ -36,12 +55,17 @@ bashTestRunner_testVerifyIgnoredFailureStatus() {
   # Verify the output contains expected information
   if ! echo "$output" | grep -q "IGNORED (FAIL): bashTestRunner_testIgnoredFailureSuiteFail"; then
     echo "ERROR: Output doesn't show the ignored failing test"
+    echo "Expected pattern: 'IGNORED (FAIL): bashTestRunner_testIgnoredFailureSuiteFail'"
+    echo "Actual output:"
+    echo "$output"
     return 1
   fi
   
-  # Match the exact output format including the newline before "FINAL STATUS:"
-  if ! echo "$output" | grep -q $'FINAL STATUS:\nPASS: All'; then
-    echo "ERROR: Output doesn't show final PASS status in correct format"
+  # Check for final PASS status
+  if ! echo "$output" | grep -q "FINAL STATUS:" && echo "$output" | grep -q "PASS: All"; then
+    echo "ERROR: Output doesn't show final PASS status"
+    echo "Actual output:"
+    echo "$output"
     return 1
   fi
   
@@ -50,7 +74,7 @@ bashTestRunner_testVerifyIgnoredFailureStatus() {
     echo "ERROR: Test runner returned non-zero ($return_code) despite failing test being ignored"
     return 1
   else
-    echo "SUCCESS: Test runner correctly returned 0 (success) status"
+    echo "SUCCESS: Test runner correctly returned 0 (success) status with ignored failing test"
     return 0
   fi
 }

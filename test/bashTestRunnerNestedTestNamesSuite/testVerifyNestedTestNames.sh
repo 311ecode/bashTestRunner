@@ -13,9 +13,27 @@ testVerifyNestedTestNames() {
   # Create a temporary file for capturing output
   local temp_output=$(mktemp)
   
+  # Save current environment variables
+  local saved_session="${BASH_TEST_RUNNER_SESSION:-}"
+  local saved_nested="${BASH_TEST_RUNNER_LOG_NESTED:-}"
+  
+  # Clear environment to simulate top-level call
+  unset BASH_TEST_RUNNER_SESSION
+  unset BASH_TEST_RUNNER_LOG_NESTED
+  
   # Capture output and result from running the outer bashTestRunner
-  bashTestRunner outer_tests outer_ignored > "$temp_output" 2>&1
+  (
+    bashTestRunner outer_tests outer_ignored
+  ) > "$temp_output" 2>&1
   local result=$?
+  
+  # Restore environment variables
+  if [[ -n "$saved_session" ]]; then
+    export BASH_TEST_RUNNER_SESSION="$saved_session"
+  fi
+  if [[ -n "$saved_nested" ]]; then
+    export BASH_TEST_RUNNER_LOG_NESTED="$saved_nested"
+  fi
   
   # Read the captured output
   local output=$(cat "$temp_output")
@@ -70,8 +88,10 @@ testVerifyNestedTestNames() {
   if [ -n "$errors" ]; then
     echo -e "$errors"
     echo "bashTestRunner returned: $result"
-    echo "Full captured output:"
-    echo "$output"
+    if [[ -n "$DEBUG" ]]; then
+      echo "Full captured output:"
+      echo "$output"
+    fi
     return 1
   else
     echo "Nested test names displayed correctly"
