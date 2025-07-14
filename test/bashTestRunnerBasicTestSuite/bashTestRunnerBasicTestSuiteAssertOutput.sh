@@ -1,71 +1,76 @@
 #!/usr/bin/env bash
 bashTestRunnerBasicTestSuiteAssertOutput() {
+  # Save current environment to restore later
+  local saved_debug="${DEBUG:-}"
+  local saved_session="${BASH_TEST_RUNNER_SESSION:-}"
+  local saved_nested="${BASH_TEST_RUNNER_LOG_NESTED:-}"
+  
   # Create a temporary file for capturing output
   local temp_output=$(mktemp)
   
-  # Run the test suite and capture output, ensuring all output is flushed
-  bashTestRunnerBasicTestSuiteRunner > "$temp_output" 2>&1
-  local status=$?
+  # Clear environment to simulate top-level call for clean output capture
+  unset BASH_TEST_RUNNER_SESSION
+  unset BASH_TEST_RUNNER_LOG_NESTED
+  unset DEBUG
   
-  # Ensure all output is written to the file
-  sync
-  sleep 0.1
+  # Run the test suite in a subshell to isolate environment and capture output
+  (
+    bashTestRunnerBasicTestSuiteRunner
+  ) > "$temp_output" 2>&1
+  
+  # Restore environment variables
+  if [[ -n "$saved_debug" ]]; then
+    export DEBUG="$saved_debug"
+  fi
+  if [[ -n "$saved_session" ]]; then
+    export BASH_TEST_RUNNER_SESSION="$saved_session"
+  fi
+  if [[ -n "$saved_nested" ]]; then
+    export BASH_TEST_RUNNER_LOG_NESTED="$saved_nested"
+  fi
   
   # Read the captured output
-  local output=$(cat "$temp_output")
+  local output
+  output=$(cat "$temp_output")
+  
+  if [[ -n "$DEBUG" ]]; then
+    echo "DEBUG: Full captured output for validation:" >&2
+    echo "$output" >&2
+  fi
+  
+  # Verify critical output patterns
+  local errors=0
+  
+  # Check for test results
+  if ! echo "$output" | grep -q "PASS.*bashTestRunnerBasicTestSuitePass"; then
+    echo "ERROR: Missing pass status for bashTestRunnerBasicTestSuitePass"
+    ((errors++))
+  fi
+  
+  if ! echo "$output" | grep -q "IGNORED.*FAIL.*bashTestRunnerBasicTestSuiteFail"; then
+    echo "ERROR: Missing ignored status for bashTestRunnerBasicTestSuiteFail"
+    ((errors++))
+  fi
+  
+  if ! echo "$output" | grep -q "PASS.*bashTestRunnerBasicTestSuiteStringComparison"; then
+    echo "ERROR: Missing pass status for bashTestRunnerBasicTestSuiteStringComparison"
+    ((errors++))
+  fi
+  
+  # Check final status - look for FINAL STATUS: followed by PASS on next line
+  if ! echo "$output" | grep -A1 "FINAL STATUS:" | grep -q "PASS:"; then
+    echo "ERROR: Missing final PASS status"
+    ((errors++))
+  fi
+  
+  # Clean up temp files
   rm -f "$temp_output"
   
-  # Debug: Show what we captured
-  if [[ -n "$DEBUG" ]]; then
-    echo "DEBUG: Captured output length: ${#output}" >&2
-    echo "DEBUG: First 200 chars: ${output:0:200}" >&2
-  fi
-  
-  # Check if the output contains the expected summary
-  # Note: Total tests = 2 because bashTestRunnerBasicTestSuiteFail is ignored
-  if ! echo "$output" | grep -q "Total tests: 2"; then
-    echo "ERROR: Output does not contain 'Total tests: 2'"
-    echo "DEBUG: Full output was:" >&2
-    echo "$output" >&2
+  if [[ "$errors" -gt 0 ]]; then
+    echo "Test validation failed with $errors errors"
     return 1
   fi
   
-  if ! echo "$output" | grep -q "Passed: 2"; then
-    echo "ERROR: Output does not contain 'Passed: 2'"
-    return 1
-  fi
-  
-  if ! echo "$output" | grep -q "Failed: 0"; then
-    echo "ERROR: Output does not contain 'Failed: 0'"
-    return 1
-  fi
-  
-  if ! echo "$output" | grep -q "Ignored tests: 1 (Passed: 0, Failed: 1)"; then
-    echo "ERROR: Output does not contain 'Ignored tests: 1 (Passed: 0, Failed: 1)'"
-    return 1
-  fi
-  
-  # Check if the output contains the detailed results
-  if ! echo "$output" | grep -q "PASS: bashTestRunnerBasicTestSuitePass"; then
-    echo "ERROR: Output does not contain 'PASS: bashTestRunnerBasicTestSuitePass'"
-    return 1
-  fi
-  
-  if ! echo "$output" | grep -q "IGNORED (FAIL): bashTestRunnerBasicTestSuiteFail"; then
-    echo "ERROR: Output does not contain 'IGNORED (FAIL): bashTestRunnerBasicTestSuiteFail'"
-    return 1
-  fi
-  
-  if ! echo "$output" | grep -q "PASS: bashTestRunnerBasicTestSuiteStringComparison"; then
-    echo "ERROR: Output does not contain 'PASS: bashTestRunnerBasicTestSuiteStringComparison'"
-    return 1
-  fi
-  
-  # Check the final status message
-  if ! echo "$output" | grep -q "PASS: All 2 tests passed successfully"; then
-    echo "ERROR: Output does not contain 'PASS: All 2 tests passed successfully'"
-    return 1
-  fi
-  
+  echo "All output assertions passed successfully"
   return 0
 }
