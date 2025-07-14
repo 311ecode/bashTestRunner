@@ -19,6 +19,7 @@ bashTestRunner() {
     echo "DEBUG: Ignored tests: ${ignored_tests_ref[*]}" >&2
     echo "DEBUG: Current BASH_TEST_RUNNER_SESSION: ${BASH_TEST_RUNNER_SESSION:-unset}" >&2
     echo "DEBUG: Current BASH_TEST_RUNNER_LOG_NESTED: ${BASH_TEST_RUNNER_LOG_NESTED:-unset}" >&2
+    echo "DEBUG: Current BASH_TEST_RUNNER_TEST_COUNTER: ${BASH_TEST_RUNNER_TEST_COUNTER:-unset}" >&2
   fi
   
   # Create uniquely named global arrays
@@ -35,6 +36,7 @@ bashTestRunner() {
   local saved_nested
   local session_created_here=false
   local tail_pid
+  local counter_initialized_here=false
   
   if [[ -n "${BASH_TEST_RUNNER_SESSION}" ]]; then
     # We're in a nested call - reuse the existing session
@@ -61,10 +63,18 @@ bashTestRunner() {
     
     export BASH_TEST_RUNNER_SESSION="${session_dir}"
     session_created_here=true
+    
+    # Initialize test counter for top-level session
+    if [[ -z "${BASH_TEST_RUNNER_TEST_COUNTER}" ]]; then
+      export BASH_TEST_RUNNER_TEST_COUNTER=1
+      counter_initialized_here=true
+    fi
+    
     # Ensure the nested flag is unset for top-level calls
     unset BASH_TEST_RUNNER_LOG_NESTED
     if [[ -n "$DEBUG" ]]; then
       echo "DEBUG: Top-level call, created new session: $session_dir" >&2
+      echo "DEBUG: Initialized test counter to: $BASH_TEST_RUNNER_TEST_COUNTER" >&2
     fi
   fi
   
@@ -134,6 +144,14 @@ bashTestRunner() {
     fi
     unset BASH_TEST_RUNNER_SESSION
     unset BASH_TEST_RUNNER_LOG_NESTED
+    
+    # Clean up test counter if we initialized it
+    if [[ "$counter_initialized_here" == true ]]; then
+      unset BASH_TEST_RUNNER_TEST_COUNTER
+      if [[ -n "$DEBUG" ]]; then
+        echo "DEBUG: Cleaned up test counter" >&2
+      fi
+    fi
   fi
   
   return $final_status

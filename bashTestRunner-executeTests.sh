@@ -16,6 +16,11 @@ bashTestRunner-executeTests() {
   
   local test_function  # Declare as local to prevent pollution in nested calls
   
+  # Initialize or increment the global test counter
+  if [[ -z "${BASH_TEST_RUNNER_TEST_COUNTER}" ]]; then
+    export BASH_TEST_RUNNER_TEST_COUNTER=1
+  fi
+  
   if [[ -n "$DEBUG" ]]; then
     echo "DEBUG: executeTests starting with run_id=$run_id" >&2
     echo "DEBUG: Test functions: ${test_functions_ref[*]}" >&2
@@ -23,12 +28,18 @@ bashTestRunner-executeTests() {
     echo "DEBUG: Test functions count: ${#test_functions_ref[@]}" >&2
     echo "DEBUG: Ignored tests count: ${#ignored_tests_ref[@]}" >&2
     echo "DEBUG: Session directory: $session_dir" >&2
+    echo "DEBUG: Test counter starting at: $BASH_TEST_RUNNER_TEST_COUNTER" >&2
   fi
   
   # Run all tests
   for test_function in "${test_functions_ref[@]}"; do
     # Track function/suite execution time
     local suite_time_start=$(date +%s.%N)
+    
+    # Generate individual test log file name
+    local test_number=$(printf "%04d" $BASH_TEST_RUNNER_TEST_COUNTER)
+    local random_suffix=$(head /dev/urandom | tr -dc 'a-z0-9' | head -c 6)
+    local individual_log="${session_dir}/${test_number}-${test_function}-${random_suffix}.log"
     
     # Check if this test is in the ignored list
     local is_ignored=false
@@ -41,11 +52,22 @@ bashTestRunner-executeTests() {
     
     if [[ -n "$DEBUG" ]]; then
       echo "DEBUG: Running test function: $test_function (ignored=$is_ignored)" >&2
+      echo "DEBUG: Individual log file: $individual_log" >&2
+      echo "DEBUG: Test counter: $BASH_TEST_RUNNER_TEST_COUNTER" >&2
     fi
     
+    # Create individual log file and start tail process for it
+    touch "$individual_log"
+    tail -f -n +1 "$individual_log" &
+    local tail_pid=$!
+    
     echo "Running test: $test_function" >> "$log_file"
+    echo "Running test: $test_function" >> "$individual_log"
+    echo "Individual log: $individual_log" >> "$log_file"
+    
     if $is_ignored; then
       echo "(Note: This test will be ignored in final results)" >> "$log_file"
+      echo "(Note: This test will be ignored in final results)" >> "$individual_log"
     fi
     
     local test_time_start=$(date +%s.%N)
@@ -78,12 +100,19 @@ bashTestRunner-executeTests() {
     # Change to the test directory
     cd "$testPwd"
     
-    # Execute the test function with output redirected to the main log
-    $test_function >> "$log_file" 2>&1
+    # Execute the test function with output redirected to both main and individual logs
+    $test_function >> "$individual_log" 2>&1
     local test_result=$?
+    
+    # Also append to main log
+    cat "$individual_log" >> "$log_file"
+    
+    # Kill the tail process for this individual test
+    kill $tail_pid 2>/dev/null || true
     
     if [[ -n "$DEBUG" ]]; then
       echo "DEBUG: Test $test_function returned exit code: $test_result" >&2
+      echo "DEBUG: Killed tail PID $tail_pid for individual log" >&2
     fi
     
     # Restore original directory
@@ -138,9 +167,16 @@ bashTestRunner-executeTests() {
     local suite_duration=$(echo "$suite_time_end - $suite_time_start" | bc)
     eval "suite_durations_$run_id[\"$test_function\"]=$suite_duration"
     
+    # Log completion to both logs
     echo "$status: $test_function completed in ${formatted_duration}s" >> "$log_file"
+    echo "$status: $test_function completed in ${formatted_duration}s" >> "$individual_log"
     echo "--------------------------------------" >> "$log_file"
+    echo "--------------------------------------" >> "$individual_log"
     echo "" >> "$log_file"
+    echo "" >> "$individual_log"
+    
+    # Increment the global test counter for next test
+    ((BASH_TEST_RUNNER_TEST_COUNTER++))
   done
   
   local total_time_end=$(date +%s.%N)
