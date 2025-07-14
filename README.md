@@ -19,11 +19,11 @@ Parameters:
 - `<test_functions_array>`: Name of an array variable containing all test functions to run
 - `<ignored_tests_array>`: Name of an array variable containing tests to ignore
 
-The function will print all output in real-time to stdout/stderr, collect the detailed output in a temporary log file, print the path to the log file, and return the status code.
+The function will append all output to a log file, display it in real-time via tail (for top-level runs), print the path to the session directory and main log file at the end for top-level runs, and return the status code.
+
 To view the results later:
 ```bash
-log_path=$(bashTestRunner myTests ignored | tail -1)
-cat "$log_path"
+cat "/path/to/session/main.log"
 ```
 
 Example:
@@ -47,7 +47,7 @@ Use `-h` or `--help` for usage information (handled by upper management layer).
 - Ignored tests are excluded from failure counts
 
 ### Reporting
-- Detailed summary of test results printed to stdout and collected in the log file
+- Detailed summary of test results appended to the log file and displayed in real-time via tail
 - Individual test status (PASS/FAIL/IGNORED)
 - Execution time tracking
 - Recommendations for passing ignored tests
@@ -62,7 +62,7 @@ Use `-h` or `--help` for usage information (handled by upper management layer).
 Each test function should:
 - Return 0 for success
 - Return non-zero for failure
-- Output any diagnostic information to stdout/stderr (will be printed in real-time and captured in log)
+- Output any diagnostic information to stdout/stderr (will be captured in log and displayed in real-time)
 
 Example test:
 ```bash
@@ -84,7 +84,7 @@ bashTestRunner can handle nested test suites by:
 - Managing directory changes
 - Isolating test function arrays
 - Appending output to the top-level log file
-- Printing output in real-time to stdout
+- Real-time display handled by top-level tail process
 
 ## Included Test Suites
 
@@ -148,9 +148,10 @@ Test functions:
 FINAL STATUS:
 PASS: All 2 tests passed successfully
 ======================================
-Log file: /tmp/bashTestRunner.XXXXXX.log
+Session directory: /tmp/bashTestRunnerSessions/XXXXXX
+Main log file: /tmp/bashTestRunnerSessions/XXXXXX/main.log
 ```
 
 ## Dependencies
 - Bash 4.0 or later (for associative arrays)
-- Basic Unix utilities (date, bc, tee, etc.)
+- Basic Unix utilities (date, bc, tail, etc.)

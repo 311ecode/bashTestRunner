@@ -13,7 +13,6 @@ bashTestRunner-executeTests() {
   local ignored_passed=0
   local ignored_failed=0
   local total_time_start=$(date +%s.%N)
-  local test_serial=1  # Initialize serial counter
   
   local test_function  # Declare as local to prevent pollution in nested calls
   
@@ -44,16 +43,11 @@ bashTestRunner-executeTests() {
       echo "DEBUG: Running test function: $test_function (ignored=$is_ignored)" >&2
     fi
     
-    echo "Running test: $test_function" | tee -a "$log_file"
+    echo "Running test: $test_function" >> "$log_file"
     if $is_ignored; then
-      echo "(Note: This test will be ignored in final results)" | tee -a "$log_file"
+      echo "(Note: This test will be ignored in final results)" >> "$log_file"
     fi
     
-    # Create per-test log file in session directory with serial number
-    local serial_padded=$(printf "%04d" $test_serial)
-    local per_test_log="${session_dir}/${serial_padded}-${test_function}.log"
-    
-    # Create result collection arrays for nested tests
     local test_time_start=$(date +%s.%N)
     
     # Save current directory
@@ -84,12 +78,9 @@ bashTestRunner-executeTests() {
     # Change to the test directory
     cd "$testPwd"
     
-    # Execute the test function in foreground with output redirected to per-test log
-    $test_function > "$per_test_log" 2>&1
+    # Execute the test function with output redirected to the main log
+    $test_function >> "$log_file" 2>&1
     local test_result=$?
-    
-    # Append per-test log to main log and print to console for real-time output
-    cat "$per_test_log" | tee -a "$log_file"
     
     if [[ -n "$DEBUG" ]]; then
       echo "DEBUG: Test $test_function returned exit code: $test_result" >&2
@@ -147,12 +138,9 @@ bashTestRunner-executeTests() {
     local suite_duration=$(echo "$suite_time_end - $suite_time_start" | bc)
     eval "suite_durations_$run_id[\"$test_function\"]=$suite_duration"
     
-    echo "$status: $test_function completed in ${formatted_duration}s" | tee -a "$log_file"
-    echo "--------------------------------------" | tee -a "$log_file"
-    echo "" | tee -a "$log_file"
-    
-    # Increment serial counter for next test
-    ((test_serial++))
+    echo "$status: $test_function completed in ${formatted_duration}s" >> "$log_file"
+    echo "--------------------------------------" >> "$log_file"
+    echo "" >> "$log_file"
   done
   
   local total_time_end=$(date +%s.%N)

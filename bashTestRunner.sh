@@ -34,6 +34,7 @@ bashTestRunner() {
   local nested_was_set=0
   local saved_nested
   local session_created_here=false
+  local tail_pid
   
   if [[ -n "${BASH_TEST_RUNNER_SESSION}" ]]; then
     # We're in a nested call - reuse the existing session
@@ -70,11 +71,21 @@ bashTestRunner() {
   # Set main log file path
   log_file="${session_dir}/main.log"
   
-  echo "======================================" | tee -a "${log_file}"
-  echo "Starting test suite with ${#test_functions_ref[@]} tests" | tee -a "${log_file}"
-  echo "(Plus ${#ignored_tests_ref[@]} ignored tests)" | tee -a "${log_file}"
-  echo "======================================" | tee -a "${log_file}"
-  echo "" | tee -a "${log_file}"
+  # If top-level, start tail -f in background to show real-time logs
+  if [[ "$session_created_here" == true ]]; then
+    touch "$log_file"
+    tail -f -n +1 "$log_file" &
+    tail_pid=$!
+    if [[ -n "$DEBUG" ]]; then
+      echo "DEBUG: Started tail -f on $log_file with PID $tail_pid" >&2
+    fi
+  fi
+  
+  echo "======================================" >> "${log_file}"
+  echo "Starting test suite with ${#test_functions_ref[@]} tests" >> "${log_file}"
+  echo "(Plus ${#ignored_tests_ref[@]} ignored tests)" >> "${log_file}"
+  echo "======================================" >> "${log_file}"
+  echo "" >> "${log_file}"
   
   # Execute all tests and collect results
   bashTestRunner-executeTests "$1" "$2" "$run_id" "$testPwd" "${log_file}" "${session_dir}"
@@ -96,7 +107,6 @@ bashTestRunner() {
     echo "DEBUG: Metrics at evaluation:" >&2
     local metric_var
     for metric_var in ignored_tests_count ignored_passed passed_tests failed_tests counted_tests total_duration ignored_failed; do
-        local var_name="metrics_${run_id}[${metric_var}]"
         eval "echo \"DEBUG:   ${metric_var} = \${metrics_${run_id}[${metric_var}]}\" >&2"
     done
   fi
@@ -114,6 +124,13 @@ bashTestRunner() {
   if [[ "$session_created_here" == true ]]; then
     if [[ -n "$DEBUG" ]]; then
       echo "DEBUG: Top-level call finished, cleaning up session environment variable" >&2
+    fi
+    # Kill the tail process
+    if [[ -n "$tail_pid" ]]; then
+      kill $tail_pid 2>/dev/null || true
+      if [[ -n "$DEBUG" ]]; then
+        echo "DEBUG: Killed tail PID $tail_pid" >&2
+      fi
     fi
     unset BASH_TEST_RUNNER_SESSION
     unset BASH_TEST_RUNNER_LOG_NESTED
