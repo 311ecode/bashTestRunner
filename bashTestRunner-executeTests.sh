@@ -46,6 +46,9 @@ bashTestRunner-executeTests() {
       echo "(Note: This test will be ignored in final results)" | tee -a "$log_file"
     fi
     
+    # Create per-test temporary log file
+    local per_test_log=$(mktemp /tmp/bashTestRunner_test.XXXXXX.log)
+    
     # Create result collection arrays for nested tests
     local test_time_start=$(date +%s.%N)
     
@@ -77,9 +80,15 @@ bashTestRunner-executeTests() {
     # Change to the test directory
     cd "$testPwd"
     
-    # Execute the test function directly
-    $test_function 2>&1 | tee -a "$log_file"
-    local test_result=${PIPESTATUS[0]}
+    # Execute the test function in foreground with output redirected to per-test log
+    $test_function > "$per_test_log" 2>&1
+    local test_result=$?
+    
+    # Append per-test log to main log and print to console for real-time output
+    cat "$per_test_log" | tee -a "$log_file"
+    
+    # Clean up per-test log
+    rm -f "$per_test_log"
     
     if [[ -n "$DEBUG" ]]; then
       echo "DEBUG: Test $test_function returned exit code: $test_result" >&2
@@ -160,12 +169,6 @@ bashTestRunner-executeTests() {
   
   if [[ -n "$DEBUG" ]]; then
     echo "DEBUG: Final metrics for run_id $run_id:" >&2
-    echo "DEBUG:   passed_tests=$passed_tests" >&2
-    echo "DEBUG:   failed_tests=$failed_tests" >&2
-    echo "DEBUG:   ignored_passed=$ignored_passed" >&2
-    echo "DEBUG:   ignored_failed=$ignored_failed" >&2
-    echo "DEBUG:   counted_tests=$counted_tests" >&2
-    echo "DEBUG:   ignored_tests_count=${#ignored_tests_ref[@]}" >&2
-    echo "DEBUG:   total_duration=$total_duration" >&2
+    eval "for key in \"\${!metrics_$run_id[@]}\"; do echo \"DEBUG:   \$key = \${metrics_$run_id[\$key]}\" >&2; done"
   fi
 }
