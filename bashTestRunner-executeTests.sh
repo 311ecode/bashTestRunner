@@ -13,6 +13,7 @@ bashTestRunner-executeTests() {
   local ignored_passed=0
   local ignored_failed=0
   local total_time_start=$(date +%s.%N)
+  local test_serial=1  # Initialize serial counter
   
   local test_function  # Declare as local to prevent pollution in nested calls
   
@@ -48,8 +49,9 @@ bashTestRunner-executeTests() {
       echo "(Note: This test will be ignored in final results)" | tee -a "$log_file"
     fi
     
-    # Create per-test log file in session directory
-    local per_test_log="${session_dir}/${test_function}.log"
+    # Create per-test log file in session directory with serial number
+    local serial_padded=$(printf "%04d" $test_serial)
+    local per_test_log="${session_dir}/${serial_padded}-${test_function}.log"
     
     # Create result collection arrays for nested tests
     local test_time_start=$(date +%s.%N)
@@ -148,6 +150,9 @@ bashTestRunner-executeTests() {
     echo "$status: $test_function completed in ${formatted_duration}s" | tee -a "$log_file"
     echo "--------------------------------------" | tee -a "$log_file"
     echo "" | tee -a "$log_file"
+    
+    # Increment serial counter for next test
+    ((test_serial++))
   done
   
   local total_time_end=$(date +%s.%N)
