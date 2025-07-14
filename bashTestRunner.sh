@@ -30,10 +30,17 @@ bashTestRunner() {
   # Determine log file and nesting level
   local log_file
   local is_nested=false
+  local nested_was_set=0
+  local saved_nested
   if [[ -n "${BASH_TEST_RUNNER_LOG}" ]]; then
     # We're in a nested call - reuse the existing log file
     log_file="${BASH_TEST_RUNNER_LOG}"
     is_nested=true
+    # Save current nested flag state before setting
+    if [[ -v BASH_TEST_RUNNER_LOG_NESTED ]]; then
+      nested_was_set=1
+      saved_nested="${BASH_TEST_RUNNER_LOG_NESTED}"
+    fi
     # Set the nested flag to suppress log file path printing in summary
     export BASH_TEST_RUNNER_LOG_NESTED=1
     if [[ -n "$DEBUG" ]]; then
@@ -79,6 +86,15 @@ bashTestRunner() {
         local var_name="metrics_${run_id}[${metric_var}]"
         eval "echo \"DEBUG:   ${metric_var} = \${metrics_${run_id}[${metric_var}]}\" >&2"
     done
+  fi
+  
+  # Restore the nested flag if this was a nested call
+  if [[ "$is_nested" == true ]]; then
+    if [[ $nested_was_set -eq 1 ]]; then
+      export BASH_TEST_RUNNER_LOG_NESTED="$saved_nested"
+    else
+      unset BASH_TEST_RUNNER_LOG_NESTED
+    fi
   fi
   
   # Clean up environment variables if this was the top-level call
