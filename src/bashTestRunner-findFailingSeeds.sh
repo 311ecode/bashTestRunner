@@ -79,12 +79,7 @@ bashTestRunner-findFailingSeeds() {
       local latest_session_dir=$(dirname "$latest_main_log")
       
       # Extract the last TEST SUMMARY content
-      local last_summary=$(awk '
-        /^TEST SUMMARY$/ { summary = ""; in_summary = 1; next }
-        /^={38}$/ { if (in_summary) { in_summary = 2 } else if (in_summary == 2) { in_summary = 0; last_summary = summary; summary = "" } next }
-        in_summary == 2 { summary = summary $0 "\n" }
-        END { print last_summary }
-      ' "$latest_main_log")
+      local last_summary=$(tail -n 500 "$latest_main_log" | sed -n '/^TEST SUMMARY$/,/^=+$/p' | tail -n +3 | head -n -1)
       
       if [[ -n "$last_summary" ]]; then
         failed_count=$(echo "$last_summary" | grep "^Failed: " | awk '{print $2}' || echo 0)
@@ -93,8 +88,17 @@ bashTestRunner-findFailingSeeds() {
       
       # If failed, extract failing test names from the last detailed results
       if [[ $test_result -ne 0 ]]; then
-        failing_tests=$(echo "$last_summary" | grep '^ - FAIL: ' | sed 's/^ - FAIL: //' | sed 's/ (.*//' | head -3 | paste -sd ',' - || echo "")
+        failing_tests=$(echo "$last_summary" | grep '^ - FAIL: ' | sed 's/^ - FAIL: //' | sed 's/ (.*//' | head -3 | tr '\n' ',' | sed 's/,$//')
       fi
+    fi
+    
+    if [[ -n "$DEBUG" ]]; then
+      echo "DEBUG: Latest main log: $latest_main_log" >&2
+      echo "DEBUG: Last summary:" >&2
+      echo "$last_summary" >&2
+      echo "DEBUG: Failed count: $failed_count" >&2
+      echo "DEBUG: Passed count: $passed_count" >&2
+      echo "DEBUG: Failing tests: $failing_tests" >&2
     fi
     
     # Log this execution
