@@ -17,13 +17,14 @@ bashTestRunnerRunAllTests() {
     "bashTestRunnerMissingTestSuite"
     "bashTestRunnerTrapTestSuite"
     "bashTestRunnerTrapExitTestSuite"
+    "bashTestRunnerExcludeOptionTestSuite"
   )
   
   local ignored_suites=(
     # None of the test suites are ignored by default
   )
   
-  # Run bashTestRunner to execute all test suites
-  bashTestRunner test_suites ignored_suites
+  # Run bashTestRunner to execute all test suites, forwarding any command line arguments
+  bashTestRunner test_suites ignored_suites "$@"
   return $?
 }

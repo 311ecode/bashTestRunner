@@ -4,30 +4,79 @@
 export LC_NUMERIC=C
 
 bashTestRunner() {
+  # Parse options and positionals
+  local excludes=()
+  local positionals=()
+  local help_requested=false
+
+  while [[ $# -gt 0 ]]; do
+    case $1 in
+      -x|--exclude)
+        if [[ -z $2 ]]; then
+          echo "Error: --exclude requires an argument" >&2
+          return 1
+        fi
+        IFS=' ' read -r -a temp_excludes <<< "$2"
+        excludes+=("${temp_excludes[@]}")
+        shift 2
+        ;;
+      -h|--help)
+        help_requested=true
+        shift
+        ;;
+      -*)
+        echo "Unknown option: $1" >&2
+        return 1
+        ;;
+      *)
+        positionals+=("$1")
+        shift
+        ;;
+    esac
+  done
+
+  if $help_requested; then
+    echo "Usage: bashTestRunner [options] <test_functions_array> <ignored_tests_array>"
+    echo "Options:"
+    echo "  -x, --exclude <tests>   Additional tests to ignore (space-separated, quoted if multiple)"
+    echo "  -h, --help              Show this help message"
+    return 0
+  fi
+
+  if [[ ${#positionals[@]} -ne 2 ]]; then
+    echo "Error: Requires exactly two positional arguments: test_functions_array and ignored_tests_array" >&2
+    return 1
+  fi
+
   # Get array references for inputs
-  local -n test_functions_ref=$1
-  local -n ignored_tests_ref=$2
+  local -n test_functions_ref=${positionals[0]}
+  local -n ignored_tests_ref=${positionals[1]}
   local testPwd="$(pwd)"
-  
+
+  # Add excludes to ignored_tests_ref
+  for exclude in "${excludes[@]}"; do
+    ignored_tests_ref+=("$exclude")
+  done
+
   # Generate a unique identifier for this test run
   local run_id=$(date +%s%N | sha256sum | head -c 8)
-  
+
   if [[ -n "$DEBUG" ]]; then
     echo "DEBUG: bashTestRunner called with run_id=$run_id" >&2
-    echo "DEBUG: test_functions_ref name=$1, ignored_tests_ref name=$2" >&2
+    echo "DEBUG: test_functions_ref name=${positionals[0]}, ignored_tests_ref name=${positionals[1]}" >&2
     echo "DEBUG: Test functions: ${test_functions_ref[*]}" >&2
     echo "DEBUG: Ignored tests: ${ignored_tests_ref[*]}" >&2
     echo "DEBUG: Current BASH_TEST_RUNNER_SESSION: ${BASH_TEST_RUNNER_SESSION:-unset}" >&2
     echo "DEBUG: Current BASH_TEST_RUNNER_LOG_NESTED: ${BASH_TEST_RUNNER_LOG_NESTED:-unset}" >&2
     echo "DEBUG: Current BASH_TEST_RUNNER_TEST_COUNTER: ${BASH_TEST_RUNNER_TEST_COUNTER:-unset}" >&2
   fi
-  
+
   # Create uniquely named global arrays
   declare -ga "results_$run_id"
   declare -ga "passing_ignored_tests_$run_id"
   declare -gA "metrics_$run_id"
   declare -gA "suite_durations_$run_id"  # For test suite durations
-  
+
   # Determine session directory and nesting level
   local session_dir
   local log_file
@@ -37,7 +86,7 @@ bashTestRunner() {
   local session_created_here=false
   local tail_pid
   local counter_initialized_here=false
-  
+
   if [[ -n "${BASH_TEST_RUNNER_SESSION}" ]]; then
     # We're in a nested call - reuse the existing session
     session_dir="${BASH_TEST_RUNNER_SESSION}"
@@ -57,19 +106,19 @@ bashTestRunner() {
     local timestamp=$(date +%Y%m%d%H%M%S)
     local session_id=$(date +%s%N | sha256sum | head -c 8)
     session_dir="/tmp/bashTestRunnerSessions/${timestamp}-${session_id}"
-    
+
     # Create session directory
     mkdir -p "$session_dir"
-    
+
     export BASH_TEST_RUNNER_SESSION="${session_dir}"
     session_created_here=true
-    
+
     # Initialize test counter for top-level session
     if [[ -z "${BASH_TEST_RUNNER_TEST_COUNTER}" ]]; then
       export BASH_TEST_RUNNER_TEST_COUNTER=1
       counter_initialized_here=true
     fi
-    
+
     # Ensure the nested flag is unset for top-level calls
     unset BASH_TEST_RUNNER_LOG_NESTED
     if [[ -n "$DEBUG" ]]; then
@@ -77,10 +126,10 @@ bashTestRunner() {
       echo "DEBUG: Initialized test counter to: $BASH_TEST_RUNNER_TEST_COUNTER" >&2
     fi
   fi
-  
+
   # Set main log file path
   log_file="${session_dir}/main.log"
-  
+
   # If top-level, start tail -f in background to show real-time logs
   if [[ "$session_created_here" == true ]]; then
     touch "$log_file"
@@ -90,28 +139,28 @@ bashTestRunner() {
       echo "DEBUG: Started tail -f on $log_file with PID $tail_pid" >&2
     fi
   fi
-  
+
   echo "======================================" >> "${log_file}"
   echo "Starting test suite with ${#test_functions_ref[@]} tests" >> "${log_file}"
   echo "(Plus ${#ignored_tests_ref[@]} ignored tests)" >> "${log_file}"
   echo "======================================" >> "${log_file}"
   echo "" >> "${log_file}"
-  
+
   # Execute all tests and collect results
-  bashTestRunner-executeTests "$1" "$2" "$run_id" "$testPwd" "${log_file}" "${session_dir}"
-  
+  bashTestRunner-executeTests "${positionals[0]}" "${positionals[1]}" "$run_id" "$testPwd" "${log_file}" "${session_dir}"
+
   if [[ -n "$DEBUG" ]]; then
     echo "DEBUG: Metrics after execution for run_id=$run_id:" >&2
     eval "for key in \"\${!metrics_$run_id[@]}\"; do echo \"DEBUG:   \$key = \${metrics_$run_id[\$key]}\" >&2; done"
   fi
-  
+
   # Call the summary function with all collected data
-  bashTestRunner-printSummary "results_$run_id" "passing_ignored_tests_$run_id" "metrics_$run_id" "$1" "suite_durations_$run_id" "${log_file}" "${session_dir}"
-  
+  bashTestRunner-printSummary "results_$run_id" "passing_ignored_tests_$run_id" "metrics_$run_id" "${positionals[0]}" "suite_durations_$run_id" "${log_file}" "${session_dir}"
+
   # Get the final status BEFORE cleaning up arrays
   bashTestRunner-evaluateStatus "metrics_${run_id}"
   local final_status=$?
-  
+
   if [[ -n "$DEBUG" ]]; then
     echo "DEBUG: bashTestRunner final_status=$final_status for run_id=$run_id" >&2
     echo "DEBUG: Metrics at evaluation:" >&2
@@ -120,7 +169,7 @@ bashTestRunner() {
         eval "echo \"DEBUG:   ${metric_var} = \${metrics_${run_id}[${metric_var}]}\" >&2"
     done
   fi
-  
+
   # Restore the nested flag if this was a nested call
   if [[ "$is_nested" == true ]]; then
     if [[ $nested_was_set -eq 1 ]]; then
@@ -129,7 +178,7 @@ bashTestRunner() {
       unset BASH_TEST_RUNNER_LOG_NESTED
     fi
   fi
-  
+
   # Clean up environment variables if this was the top-level call
   if [[ "$session_created_here" == true ]]; then
     if [[ -n "$DEBUG" ]]; then
@@ -144,7 +193,7 @@ bashTestRunner() {
     fi
     unset BASH_TEST_RUNNER_SESSION
     unset BASH_TEST_RUNNER_LOG_NESTED
-    
+
     # Clean up test counter if we initialized it
     if [[ "$counter_initialized_here" == true ]]; then
       unset BASH_TEST_RUNNER_TEST_COUNTER
@@ -153,6 +202,6 @@ bashTestRunner() {
       fi
     fi
   fi
-  
+
   return $final_status
 }

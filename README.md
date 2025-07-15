@@ -9,13 +9,14 @@ bashTestRunner is a lightweight test framework for Bash scripts that provides te
 To run a test suite, you need to:
 1. Define test functions (prefixed with `test`)
 2. Create arrays of test functions and ignored tests
-3. Call `bashTestRunner` with these arrays
+3. Call `bashTestRunner` with these arrays and optional command line options
 
 ```bash
-bashTestRunner <test_functions_array> <ignored_tests_array>
+bashTestRunner [options] <test_functions_array> <ignored_tests_array>
 ```
 
 Parameters:
+- `[options]`: Optional command line options (see Command Line Options below)
 - `<test_functions_array>`: Name of an array variable containing all test functions to run
 - `<ignored_tests_array>`: Name of an array variable containing tests to ignore
 
@@ -36,8 +37,9 @@ ignored=("test2")
 bashTestRunner myTests ignored
 ```
 
-### Command Line Help
-Use `-h` or `--help` for usage information (handled by upper management layer).
+## Command Line Options
+- `-x, --exclude <tests>`: Space-separated list of additional tests to ignore (quoted if multiple). These are added to the ignored_tests_array. Example: `-x "test3 test4"`
+- `-h, --help`: Display usage information and exit.
 
 ## Key Features
 
@@ -96,6 +98,10 @@ The framework includes several example test suites that demonstrate its capabili
 4. `ignoredFailureTestSuite.sh` - Tests ignored failure handling
 5. `missingTestSuite.sh` - Verifies handling of missing test functions
 6. `bashTestRunnerTrapTestSuite.sh` - Tests using trap in test functions
+7. `logFilePathTestSuite.sh` - Verifies log file path reporting in nested calls
+8. `nestedTestNamesSuite.sh` - Verifies nested test name display
+9. `trapExitTestSuite.sh` - Tests using trap on EXIT in test functions
+10. `excludeOptionTestSuite.sh` - Verifies the --exclude command line option
 
 ## Best Practices
 

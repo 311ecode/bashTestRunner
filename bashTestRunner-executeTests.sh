@@ -61,12 +61,9 @@ bashTestRunner-executeTests() {
     tail -f -n +1 "$individual_log" &
     local tail_pid=$!
     
-    echo "Running test: $test_function" >> "$log_file"
     echo "Running test: $test_function" >> "$individual_log"
-    echo "Individual log: $individual_log" >> "$log_file"
     
     if $is_ignored; then
-      echo "(Note: This test will be ignored in final results)" >> "$log_file"
       echo "(Note: This test will be ignored in final results)" >> "$individual_log"
     fi
     
