@@ -19,6 +19,7 @@ bashTestRunnerRunAllTests() {
     "bashTestRunnerTrapExitTestSuite"
     "bashTestRunnerExcludeOptionTestSuite"
     "bashTestRunnerShuffleTestSuite"
+    "bashTestRunnerSeedHuntingTestSuite"
   )
   
   local ignored_suites=(
