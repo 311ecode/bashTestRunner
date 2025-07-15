@@ -31,6 +31,14 @@ bashTestRunner-executeTests() {
     echo "DEBUG: Test counter starting at: $BASH_TEST_RUNNER_TEST_COUNTER" >&2
   fi
   
+  # Apply shuffling if seed is provided
+  if [[ -n "${BASH_TEST_RUNNER_SEED}" ]]; then
+    echo "Shuffling tests with seed: ${BASH_TEST_RUNNER_SEED}" >> "${log_file}"
+    bashTestRunner-shuffleArray test_functions_ref "${BASH_TEST_RUNNER_SEED}"
+    echo "Test execution order: ${test_functions_ref[*]}" >> "${log_file}"
+    echo "" >> "${log_file}"
+  fi
+  
   # Run all tests
   for test_function in "${test_functions_ref[@]}"; do
     # Track function/suite execution time
