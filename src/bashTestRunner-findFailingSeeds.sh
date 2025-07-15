@@ -24,7 +24,7 @@ bashTestRunner-findFailingSeeds() {
   # Initialize/clear the files
   > "$failing_seeds_file"
   echo "# Test execution log - $(date)" >> "$execution_log_file"
-  echo "# Format: TIMESTAMP | SEED | STATUS | FAILED_TESTS | PASSED_TESTS | FAILING_TESTS" >> "$execution_log_file"
+  echo "# Format: TIMESTAMP | SEED | STATUS | FAILED_TESTS | PASSED_TESTS" >> "$execution_log_file"
   
   local attempt=1
   local failing_seeds_found=0
@@ -68,27 +68,19 @@ bashTestRunner-findFailingSeeds() {
       export BASH_TEST_RUNNER_LOG_NESTED="$temp_nested"
     fi
     
-    # Parse the results from the most recent session
+    # Parse the results from the last session
     local failed_count=0
     local passed_count=0
-    local failing_tests=""
     
-    # Find the most recent main.log by modification time
-    local latest_main_log=$(find /tmp/bashTestRunnerSessions -name "main.log" -type f -printf '%T@ %p\n' 2>/dev/null | sort -rn | head -1 | cut -d' ' -f2-)
-    if [[ -n "$latest_main_log" ]]; then
-      local latest_session_dir=$(dirname "$latest_main_log")
-      
-      # Extract the last TEST SUMMARY content
-      local last_summary=$(tail -n 500 "$latest_main_log" | awk '/^TEST SUMMARY$/{found=1; next} found && /^=+$/{exit} found {print $0}')
-      
-      if [[ -n "$last_summary" ]]; then
-        failed_count=$(echo "$last_summary" | grep "^Failed: " | sed 's/^Failed: //' | cut -d' ' -f1 || echo 0)
-        passed_count=$(echo "$last_summary" | grep "^Passed: " | sed 's/^Passed: //' | cut -d' ' -f1 || echo 0)
+    # Try to find the most recent session log to extract metrics
+    local latest_session_dir=$(find /tmp/bashTestRunnerSessions -name "main.log" -type f 2>/dev/null | head -1 | dirname)
+    if [[ -n "$latest_session_dir" && -f "$latest_session_dir/main.log" ]]; then
+      if grep -q "Failed: " "$latest_session_dir/main.log"; then
+        failed_count=$(grep "Failed: " "$latest_session_dir/main.log" | tail -1 | sed 's/Failed: //' | cut -d' ' -f1)
       fi
       
-      # If failed, extract failing test names from the last detailed results
-      if [[ $test_result -ne 0 ]]; then
-        failing_tests=$(tail -n 500 "$latest_main_log" | grep ' - FAIL: ' | sed 's/ - FAIL: //' | sed 's/ (.*//' | head -3 | paste -sd ',' - || echo "")
+      if grep -q "Passed: " "$latest_session_dir/main.log"; then
+        passed_count=$(grep "Passed: " "$latest_session_dir/main.log" | tail -1 | sed 's/Passed: //' | cut -d' ' -f1)
       fi
     fi
     
@@ -99,7 +91,7 @@ bashTestRunner-findFailingSeeds() {
       status="FAIL"
     fi
     
-    echo "$timestamp | $random_seed | $status | $failed_count | $passed_count | $failing_tests" >> "$execution_log_file"
+    echo "$timestamp | $random_seed | $status | $failed_count | $passed_count" >> "$execution_log_file"
     
     # Report result
     echo ""
