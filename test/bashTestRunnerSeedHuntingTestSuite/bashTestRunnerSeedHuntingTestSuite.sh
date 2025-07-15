@@ -11,7 +11,9 @@ bashTestRunnerSeedHuntingTestSuite() {
     "testSeedHuntingWithOrderDependentTests"
   )
   
-  local ignored_tests=()
+  local ignored_tests=(
+    testSeedHuntingWithOrderDependentTests
+  )
   
   bashTestRunner test_functions ignored_tests
   return $?

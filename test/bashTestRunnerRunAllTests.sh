@@ -23,7 +23,6 @@ bashTestRunnerRunAllTests() {
   )
   
   local ignored_suites=(
-    bashTestRunnerSeedHuntingTestSuite
     # None of the test suites are ignored by default
   )
   
