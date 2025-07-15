@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+
+
 bashTestRunner-executeAndReport() {
   local test_functions_ref_name=$1
   local ignored_tests_ref_name=$2
@@ -25,7 +27,7 @@ bashTestRunner-executeAndReport() {
   declare -ga "results_$run_id"
   declare -ga "passing_ignored_tests_$run_id"
   declare -gA "metrics_$run_id"
-  declare -gA "suite_durations_$run_id"  # For test suite durations
+  declare -gA "suite_durations_$run_id"
 
   # Determine session directory and nesting level
   local session_dir
@@ -38,38 +40,28 @@ bashTestRunner-executeAndReport() {
   local counter_initialized_here=false
 
   if [[ -n "${BASH_TEST_RUNNER_SESSION}" ]]; then
-    # We're in a nested call - reuse the existing session
     session_dir="${BASH_TEST_RUNNER_SESSION}"
     is_nested=true
-    # Save current nested flag state before setting
     if [[ -v BASH_TEST_RUNNER_LOG_NESTED ]]; then
       nested_was_set=1
       saved_nested="${BASH_TEST_RUNNER_LOG_NESTED}"
     fi
-    # Set the nested flag to suppress log file path printing in summary
     export BASH_TEST_RUNNER_LOG_NESTED=1
     if [[ -n "$DEBUG" ]]; then
       echo "DEBUG: Detected nested call, reusing session: $session_dir" >&2
     fi
   else
-    # We're in a top-level call - create new session
     local timestamp=$(date +%Y%m%d%H%M%S)
     local session_id=$(date +%s%N | sha256sum | head -c 8)
     session_dir="/tmp/bashTestRunnerSessions/${timestamp}-${session_id}"
-
-    # Create session directory
     mkdir -p "$session_dir"
-
     export BASH_TEST_RUNNER_SESSION="${session_dir}"
     session_created_here=true
 
-    # Initialize test counter for top-level session
     if [[ -z "${BASH_TEST_RUNNER_TEST_COUNTER}" ]]; then
       export BASH_TEST_RUNNER_TEST_COUNTER=1
       counter_initialized_here=true
     fi
-
-    # Ensure the nested flag is unset for top-level calls
     unset BASH_TEST_RUNNER_LOG_NESTED
     if [[ -n "$DEBUG" ]]; then
       echo "DEBUG: Top-level call, created new session: $session_dir" >&2
@@ -77,10 +69,8 @@ bashTestRunner-executeAndReport() {
     fi
   fi
 
-  # Set main log file path
   log_file="${session_dir}/main.log"
 
-  # If top-level, start tail -f in background to show real-time logs
   if [[ "$session_created_here" == true ]]; then
     touch "$log_file"
     tail -f -n +1 "$log_file" &
@@ -90,35 +80,9 @@ bashTestRunner-executeAndReport() {
     fi
   fi
 
-  echo "======================================" >> "${log_file}"
-  echo "Starting test suite with ${#test_functions_ref[@]} tests" >> "${log_file}"
-  echo "(Plus ${#ignored_tests_ref[@]} ignored tests)" >> "${log_file}"
-  echo "======================================" >> "${log_file}"
-  echo "" >> "${log_file}"
-
-  # Execute all tests and collect results
-  bashTestRunner-executeTests "${test_functions_ref_name}" "${ignored_tests_ref_name}" "$run_id" "$testPwd" "${log_file}" "${session_dir}"
-
-  if [[ -n "$DEBUG" ]]; then
-    echo "DEBUG: Metrics after execution for run_id=$run_id:" >&2
-    eval "for key in \"\${!metrics_$run_id[@]}\"; do echo \"DEBUG:   \$key = \${metrics_$run_id[\$key]}\" >&2; done"
-  fi
-
-  # Call the summary function with all collected data
-  bashTestRunner-printSummary "results_$run_id" "passing_ignored_tests_$run_id" "metrics_$run_id" "${test_functions_ref_name}" "suite_durations_$run_id" "${log_file}" "${session_dir}"
-
-  # Get the final status BEFORE cleaning up arrays
-  bashTestRunner-evaluateStatus "metrics_${run_id}"
+  # Call the core function
+  bashTestRunner-executeAndReport-core "$test_functions_ref_name" "$ignored_tests_ref_name" "$run_id" "$testPwd" "$log_file" "$session_dir"
   local final_status=$?
-
-  if [[ -n "$DEBUG" ]]; then
-    echo "DEBUG: bashTestRunner-executeAndReport final_status=$final_status for run_id=$run_id" >&2
-    echo "DEBUG: Metrics at evaluation:" >&2
-    local metric_var
-    for metric_var in ignored_tests_count ignored_passed passed_tests failed_tests counted_tests total_duration ignored_failed; do
-        eval "echo \"DEBUG:   ${metric_var} = \${metrics_${run_id}[${metric_var}]}\" >&2"
-    done
-  fi
 
   # Restore the nested flag if this was a nested call
   if [[ "$is_nested" == true ]]; then
@@ -134,7 +98,6 @@ bashTestRunner-executeAndReport() {
     if [[ -n "$DEBUG" ]]; then
       echo "DEBUG: Top-level call finished, cleaning up session environment variable" >&2
     fi
-    # Kill the tail process
     if [[ -n "$tail_pid" ]]; then
       kill $tail_pid 2>/dev/null || true
       if [[ -n "$DEBUG" ]]; then
@@ -144,7 +107,6 @@ bashTestRunner-executeAndReport() {
     unset BASH_TEST_RUNNER_SESSION
     unset BASH_TEST_RUNNER_LOG_NESTED
 
-    # Clean up test counter if we initialized it
     if [[ "$counter_initialized_here" == true ]]; then
       unset BASH_TEST_RUNNER_TEST_COUNTER
       if [[ -n "$DEBUG" ]]; then
