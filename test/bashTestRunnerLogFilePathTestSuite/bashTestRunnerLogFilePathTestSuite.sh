@@ -14,6 +14,7 @@ bashTestRunnerLogFilePathTestSuite() {
     "testVerifyTopLevelLogPath"
     "testVerifyNestedLogPath"
     "testVerifyDeeplyNestedLogPath"
+    "testVerifyIgnoredLogFileNaming"
   )
   
   local ignored_tests=(

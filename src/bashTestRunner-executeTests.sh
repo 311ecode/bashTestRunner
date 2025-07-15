@@ -23,6 +23,7 @@ bashTestRunner-executeTests() {
   
   if [[ -n "$DEBUG" ]]; then
     echo "DEBUG: executeTests starting with run_id=$run_id" >&2
+    echo "DEBUG: test_functions_ref name=${test_functions_ref_name}, ignored_tests_ref name=${ignored_tests_ref_name}" >&2
     echo "DEBUG: Test functions: ${test_functions_ref[*]}" >&2
     echo "DEBUG: Ignored tests: ${ignored_tests_ref[*]}" >&2
     echo "DEBUG: Test functions count: ${#test_functions_ref[@]}" >&2
@@ -44,11 +45,6 @@ bashTestRunner-executeTests() {
     # Track function/suite execution time
     local suite_time_start=$(date +%s.%N)
     
-    # Generate individual test log file name
-    local test_number=$(printf "%04d" $BASH_TEST_RUNNER_TEST_COUNTER)
-    local random_suffix=$(head /dev/urandom | tr -dc 'a-z0-9' | head -c 6)
-    local individual_log="${session_dir}/${test_number}-${test_function}-${random_suffix}.log"
-    
     # Check if this test is in the ignored list
     local is_ignored=false
     for ignored in "${ignored_tests_ref[@]}"; do
@@ -57,6 +53,15 @@ bashTestRunner-executeTests() {
         break
       fi
     done
+    
+    # Generate individual test log file name with IGNORED suffix if applicable
+    local test_number=$(printf "%04d" $BASH_TEST_RUNNER_TEST_COUNTER)
+    local random_suffix=$(head /dev/urandom | tr -dc 'a-z0-9' | head -c 6)
+    local ignored_suffix=""
+    if $is_ignored; then
+      ignored_suffix="-IGNORED"
+    fi
+    local individual_log="${session_dir}/${test_number}-${test_function}${ignored_suffix}-${random_suffix}.log"
     
     if [[ -n "$DEBUG" ]]; then
       echo "DEBUG: Running test function: $test_function (ignored=$is_ignored)" >&2
