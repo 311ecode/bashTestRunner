@@ -94,6 +94,35 @@ testSeedHuntingWithOrderDependentTests() {
     return 1
   fi
   
+  # Verify counters and failing names
+  local has_counters=false
+  local has_failing_names=false
+  while IFS="|" read -r ts seed status failed passed failing; do
+    failed=$(echo "$failed" | tr -d ' ')
+    passed=$(echo "$passed" | tr -d ' ')
+    failing=$(echo "$failing" | tr -d ' ')
+    if [[ "$failed" -gt 0 ]] || [[ "$passed" -gt 0 ]]; then
+      has_counters=true
+    fi
+    if [[ "$status" == "FAIL" && -n "$failing" ]]; then
+      has_failing_names=true
+    fi
+  done < <(grep "|" "$temp_execution_log")
+  
+  if ! $has_counters; then
+    echo "ERROR: No log entries have non-zero counters"
+    cleanup
+    rm -f "$temp_failing_seeds" "$temp_execution_log"
+    return 1
+  fi
+  
+  if [[ $failing_seed_count -gt 0 ]] && ! $has_failing_names; then
+    echo "ERROR: Failing runs missing failing test names in log"
+    cleanup
+    rm -f "$temp_failing_seeds" "$temp_execution_log"
+    return 1
+  fi
+  
   # Test reproducing one of the failing seeds if we found any
   if [[ $failing_seed_count -gt 0 ]]; then
     local first_failing_seed=$(head -1 "$temp_failing_seeds")

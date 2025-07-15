@@ -77,6 +77,14 @@ testReproduceBugWithKnownSeed() {
     return 1
   fi
   
+  # Verify counters in reproduction output
+  if ! grep -q "Failed: [1-9]" "$temp_output"; then
+    echo "ERROR: Reproduction output has zero failed count"
+    cleanup
+    rm -f "$temp_output"
+    return 1
+  fi
+  
   echo "Bug reproduction test completed successfully"
   echo "Reproduction file created with expected content"
   

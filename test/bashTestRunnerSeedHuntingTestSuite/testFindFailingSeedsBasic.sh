@@ -80,6 +80,24 @@ testFindFailingSeedsBasic() {
     return 1
   fi
   
+  # Verify counters in at least one entry
+  local has_nonzero=false
+  while IFS="|" read -r ts seed status failed passed failing; do
+    failed=$(echo "$failed" | tr -d ' ')
+    passed=$(echo "$passed" | tr -d ' ')
+    if [[ "$failed" -gt 0 ]] || [[ "$passed" -gt 0 ]]; then
+      has_nonzero=true
+      break
+    fi
+  done < <(grep "|" "$temp_execution_log")
+  
+  if ! $has_nonzero; then
+    echo "ERROR: All log entries have zero counters"
+    cleanup
+    rm -f "$temp_failing_seeds" "$temp_execution_log"
+    return 1
+  fi
+  
   echo "Seed hunting completed successfully"
   echo "Executions logged: $execution_count"
   echo "Failing seeds found: $(wc -l < "$temp_failing_seeds" 2>/dev/null || echo 0)"
