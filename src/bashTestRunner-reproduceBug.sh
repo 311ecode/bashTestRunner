@@ -22,9 +22,9 @@ bashTestRunner-reproduceBug() {
   unset BASH_TEST_RUNNER_SESSION
   unset BASH_TEST_RUNNER_LOG_NESTED
   
-  # Run with the failing seed and capture everything
+  # Run with the failing seed and capture everything - NO SUBSHELL
   local test_result
-  (
+  {
     echo "=== BUG REPRODUCTION REPORT ==="
     echo "Timestamp: $(date)"
     echo "Seed: $failing_seed"
@@ -33,7 +33,7 @@ bashTestRunner-reproduceBug() {
     echo ""
     echo "=== TEST EXECUTION ==="
     bashTestRunner "$test_functions_ref_name" "$ignored_tests_ref_name"
-  ) > "$output_file" 2>&1
+  } > "$output_file" 2>&1
   test_result=$?
   
   # Restore environment

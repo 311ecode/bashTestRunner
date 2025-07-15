@@ -36,6 +36,8 @@ bashTestRunner-findFailingSeeds() {
     
     # Create temporary output file
     local temp_output=$(mktemp)
+    
+    # Save current environment to restore later
     local temp_session="${BASH_TEST_RUNNER_SESSION:-}"
     local temp_nested="${BASH_TEST_RUNNER_LOG_NESTED:-}"
     
@@ -43,11 +45,9 @@ bashTestRunner-findFailingSeeds() {
     unset BASH_TEST_RUNNER_SESSION
     unset BASH_TEST_RUNNER_LOG_NESTED
     
-    # Run the test suite and capture result
+    # Run the test suite and capture result - NO SUBSHELL
     local test_result
-    (
-      bashTestRunner "$test_functions_ref_name" "$ignored_tests_ref_name"
-    ) > "$temp_output" 2>&1
+    bashTestRunner "$test_functions_ref_name" "$ignored_tests_ref_name" > "$temp_output" 2>&1
     test_result=$?
     
     # Restore environment
