@@ -44,10 +44,7 @@ testReproduceBugWithKnownSeed() {
   
   # Test reproduction with a seed that should cause this order (we'll use "original" to mean no shuffle)
   local result
-  (
-    # Test without seed first (should fail because wrong order)
-    bashTestRunner-reproduceBug test_functions ignored_tests "no-shuffle" "$temp_output"
-  ) > /dev/null 2>&1
+  bashTestRunner-reproduceBug test_functions ignored_tests "no-shuffle" "$temp_output" > /dev/null 2>&1
   result=$?
   
   # Restore environment

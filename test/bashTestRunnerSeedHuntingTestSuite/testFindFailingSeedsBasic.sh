@@ -45,9 +45,7 @@ testFindFailingSeedsBasic() {
   
   # Run seed hunting with limited attempts
   local result
-  (
-    bashTestRunner-findFailingSeeds test_functions ignored_tests 10 "$temp_failing_seeds" "$temp_execution_log"
-  ) > /dev/null 2>&1
+  bashTestRunner-findFailingSeeds test_functions ignored_tests 10 "$temp_failing_seeds" "$temp_execution_log" > /dev/null 2>&1
   result=$?
   
   # Restore environment
@@ -93,6 +91,15 @@ testFindFailingSeedsBasic() {
   
   if ! $has_nonzero; then
     echo "ERROR: All log entries have zero counters"
+    if [[ -n "$DEBUG" ]]; then
+      echo "DEBUG: Execution log content:" >&2
+      cat "$temp_execution_log" >&2
+      local latest_main_log=$(find /tmp/bashTestRunnerSessions -name "main.log" -type f -printf '%T@ %p\n' 2>/dev/null | sort -rn | head -1 | cut -d' ' -f2-)
+      if [[ -n "$latest_main_log" ]]; then
+        echo "DEBUG: Latest main log content:" >&2
+        cat "$latest_main_log" >&2
+      fi
+    fi
     cleanup
     rm -f "$temp_failing_seeds" "$temp_execution_log"
     return 1

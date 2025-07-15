@@ -68,9 +68,7 @@ testSeedHuntingWithOrderDependentTests() {
   
   # Run seed hunting with limited attempts to find order-dependent failures
   local hunt_result
-  (
-    bashTestRunner-findFailingSeeds test_functions ignored_tests 20 "$temp_failing_seeds" "$temp_execution_log"
-  ) > /dev/null 2>&1
+  bashTestRunner-findFailingSeeds test_functions ignored_tests 20 "$temp_failing_seeds" "$temp_execution_log" > /dev/null 2>&1
   hunt_result=$?
   
   # Restore environment
@@ -147,9 +145,7 @@ testSeedHuntingWithOrderDependentTests() {
     echo "Testing reproduction of failing seed: $first_failing_seed"
     
     local temp_repro=$(mktemp)
-    (
-      bashTestRunner-reproduceBug test_functions ignored_tests "$first_failing_seed" "$temp_repro"
-    ) > /dev/null 2>&1
+    bashTestRunner-reproduceBug test_functions ignored_tests "$first_failing_seed" "$temp_repro" > /dev/null 2>&1
     
     if [[ ! -f "$temp_repro" ]] || ! grep -q "BUG REPRODUCTION REPORT" "$temp_repro"; then
       echo "ERROR: Failed to reproduce bug with discovered seed"
