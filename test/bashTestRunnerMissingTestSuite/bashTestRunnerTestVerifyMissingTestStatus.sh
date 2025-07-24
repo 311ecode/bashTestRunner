@@ -17,10 +17,12 @@ bashTestRunnerTestVerifyMissingTestStatus() {
   # Save current environment variables
   local saved_session="${BASH_TEST_RUNNER_SESSION:-}"
   local saved_nested="${BASH_TEST_RUNNER_LOG_NESTED:-}"
+  local saved_path="${BASH_TEST_RUNNER_TEST_PATH:-}"
   
   # Clear environment to simulate top-level call for clean output capture
   unset BASH_TEST_RUNNER_SESSION
   unset BASH_TEST_RUNNER_LOG_NESTED
+  unset BASH_TEST_RUNNER_TEST_PATH
   
   # Run bashTestRunner in a subshell to isolate environment and capture output
   local return_code
@@ -35,6 +37,9 @@ bashTestRunnerTestVerifyMissingTestStatus() {
   fi
   if [[ -n "$saved_nested" ]]; then
     export BASH_TEST_RUNNER_LOG_NESTED="$saved_nested"
+  fi
+  if [[ -n "$saved_path" ]]; then
+    export BASH_TEST_RUNNER_TEST_PATH="$saved_path"
   fi
   
   # Read the captured output
@@ -61,10 +66,11 @@ bashTestRunnerTestVerifyMissingTestStatus() {
     return 1
   fi
   
-  # Verify that the test was marked as FAIL
-  if ! echo "$output" | grep -q "FAIL: non_existent_test_function_that_does_not_exist"; then
-    echo "ERROR: Output does not show the missing test as FAIL"
-    echo "Expected to find 'FAIL: non_existent_test_function_that_does_not_exist' in output"
+  # Verify that the test was marked as FAIL - now with hierarchical path
+  # The pattern should match the hierarchical format: "FAIL: parentTest->non_existent_test_function_that_does_not_exist"
+  if ! echo "$output" | grep -q "FAIL:.*non_existent_test_function_that_does_not_exist"; then
+    echo "ERROR: Output does not show the missing test as FAIL with hierarchical path"
+    echo "Expected to find 'FAIL: *non_existent_test_function_that_does_not_exist' in output"
     echo "Captured output:"
     echo "$output"
     return 1

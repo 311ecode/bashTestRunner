@@ -23,17 +23,20 @@ testVerifyExcludeOption() {
   local temp_output1=$(mktemp)
   local saved_session1="${BASH_TEST_RUNNER_SESSION:-}"
   local saved_nested1="${BASH_TEST_RUNNER_LOG_NESTED:-}"
+  local saved_path1="${BASH_TEST_RUNNER_TEST_PATH:-}"
   unset BASH_TEST_RUNNER_SESSION
   unset BASH_TEST_RUNNER_LOG_NESTED
+  unset BASH_TEST_RUNNER_TEST_PATH
   (
     bashTestRunner test_funcs ignored1
   ) > "$temp_output1" 2>&1
   local result1=$?
   if [[ -n "$saved_session1" ]]; then export BASH_TEST_RUNNER_SESSION="$saved_session1"; fi
   if [[ -n "$saved_nested1" ]]; then export BASH_TEST_RUNNER_LOG_NESTED="$saved_nested1"; fi
+  if [[ -n "$saved_path1" ]]; then export BASH_TEST_RUNNER_TEST_PATH="$saved_path1"; fi
   local output1=$(cat "$temp_output1")
   rm -f "$temp_output1"
-  if [[ $result1 -ne 1 ]] || ! echo "$output1" | grep -q "FAIL: local_test_fail" || ! echo "$output1" | grep -A1 "FINAL STATUS:" | grep -q "FAIL:"; then
+  if [[ $result1 -ne 1 ]] || ! echo "$output1" | grep -q "FAIL:.*local_test_fail" || ! echo "$output1" | grep -A1 "FINAL STATUS:" | grep -q "FAIL:"; then
     echo "ERROR: Subtest 1 failed - unexpected result or output"
     echo "$output1"
     return 1
@@ -46,14 +49,17 @@ testVerifyExcludeOption() {
   local temp_output2=$(mktemp)
   local saved_session2="${BASH_TEST_RUNNER_SESSION:-}"
   local saved_nested2="${BASH_TEST_RUNNER_LOG_NESTED:-}"
+  local saved_path2="${BASH_TEST_RUNNER_TEST_PATH:-}"
   unset BASH_TEST_RUNNER_SESSION
   unset BASH_TEST_RUNNER_LOG_NESTED
+  unset BASH_TEST_RUNNER_TEST_PATH
   (
     bashTestRunner test_funcs ignored2 -x "local_test_fail"
   ) > "$temp_output2" 2>&1
   local result2=$?
   if [[ -n "$saved_session2" ]]; then export BASH_TEST_RUNNER_SESSION="$saved_session2"; fi
   if [[ -n "$saved_nested2" ]]; then export BASH_TEST_RUNNER_LOG_NESTED="$saved_nested2"; fi
+  if [[ -n "$saved_path2" ]]; then export BASH_TEST_RUNNER_TEST_PATH="$saved_path2"; fi
   local output2=$(cat "$temp_output2")
   rm -f "$temp_output2"
   if [[ $result2 -ne 0 ]] || ! echo "$output2" | grep -q "IGNORED (FAIL): local_test_fail" || ! echo "$output2" | grep -q "PASS: local_test_pass" || ! echo "$output2" | grep -A1 "FINAL STATUS:" | grep -q "PASS:"; then
@@ -69,17 +75,20 @@ testVerifyExcludeOption() {
   local temp_output3=$(mktemp)
   local saved_session3="${BASH_TEST_RUNNER_SESSION:-}"
   local saved_nested3="${BASH_TEST_RUNNER_LOG_NESTED:-}"
+  local saved_path3="${BASH_TEST_RUNNER_TEST_PATH:-}"
   unset BASH_TEST_RUNNER_SESSION
   unset BASH_TEST_RUNNER_LOG_NESTED
+  unset BASH_TEST_RUNNER_TEST_PATH
   (
     bashTestRunner test_funcs ignored3 -x "local_test_pass"
   ) > "$temp_output3" 2>&1
   local result3=$?
   if [[ -n "$saved_session3" ]]; then export BASH_TEST_RUNNER_SESSION="$saved_session3"; fi
   if [[ -n "$saved_nested3" ]]; then export BASH_TEST_RUNNER_LOG_NESTED="$saved_nested3"; fi
+  if [[ -n "$saved_path3" ]]; then export BASH_TEST_RUNNER_TEST_PATH="$saved_path3"; fi
   local output3=$(cat "$temp_output3")
   rm -f "$temp_output3"
-  if [[ $result3 -ne 1 ]] || ! echo "$output3" | grep -q "IGNORED (PASS): local_test_pass" || ! echo "$output3" | grep -q "FAIL: local_test_fail" || ! echo "$output3" | grep -A1 "FINAL STATUS:" | grep -q "FAIL:"; then
+  if [[ $result3 -ne 1 ]] || ! echo "$output3" | grep -q "IGNORED (PASS): local_test_pass" || ! echo "$output3" | grep -q "FAIL:.*local_test_fail" || ! echo "$output3" | grep -A1 "FINAL STATUS:" | grep -q "FAIL:"; then
     echo "ERROR: Subtest 3 failed - unexpected result or output"
     echo "$output3"
     return 1
@@ -92,14 +101,17 @@ testVerifyExcludeOption() {
   local temp_output4=$(mktemp)
   local saved_session4="${BASH_TEST_RUNNER_SESSION:-}"
   local saved_nested4="${BASH_TEST_RUNNER_LOG_NESTED:-}"
+  local saved_path4="${BASH_TEST_RUNNER_TEST_PATH:-}"
   unset BASH_TEST_RUNNER_SESSION
   unset BASH_TEST_RUNNER_LOG_NESTED
+  unset BASH_TEST_RUNNER_TEST_PATH
   (
     bashTestRunner test_funcs ignored4 -x "local_test_pass"
   ) > "$temp_output4" 2>&1
   local result4=$?
   if [[ -n "$saved_session4" ]]; then export BASH_TEST_RUNNER_SESSION="$saved_session4"; fi
   if [[ -n "$saved_nested4" ]]; then export BASH_TEST_RUNNER_LOG_NESTED="$saved_nested4"; fi
+  if [[ -n "$saved_path4" ]]; then export BASH_TEST_RUNNER_TEST_PATH="$saved_path4"; fi
   local output4=$(cat "$temp_output4")
   rm -f "$temp_output4"
   if [[ $result4 -ne 0 ]] || ! echo "$output4" | grep -q "IGNORED (FAIL): local_test_fail" || ! echo "$output4" | grep -q "IGNORED (PASS): local_test_pass" || ! echo "$output4" | grep -A1 "FINAL STATUS:" | grep -q "PASS:"; then
@@ -115,17 +127,20 @@ testVerifyExcludeOption() {
   local temp_output5=$(mktemp)
   local saved_session5="${BASH_TEST_RUNNER_SESSION:-}"
   local saved_nested5="${BASH_TEST_RUNNER_LOG_NESTED:-}"
+  local saved_path5="${BASH_TEST_RUNNER_TEST_PATH:-}"
   unset BASH_TEST_RUNNER_SESSION
   unset BASH_TEST_RUNNER_LOG_NESTED
+  unset BASH_TEST_RUNNER_TEST_PATH
   (
     bashTestRunner test_funcs ignored5 -x "non_existing_test"
   ) > "$temp_output5" 2>&1
   local result5=$?
   if [[ -n "$saved_session5" ]]; then export BASH_TEST_RUNNER_SESSION="$saved_session5"; fi
   if [[ -n "$saved_nested5" ]]; then export BASH_TEST_RUNNER_LOG_NESTED="$saved_nested5"; fi
+  if [[ -n "$saved_path5" ]]; then export BASH_TEST_RUNNER_TEST_PATH="$saved_path5"; fi
   local output5=$(cat "$temp_output5")
   rm -f "$temp_output5"
-  if [[ $result5 -ne 1 ]] || ! echo "$output5" | grep -q "FAIL: local_test_fail" || ! echo "$output5" | grep -q "PASS: local_test_pass" || ! echo "$output5" | grep -A1 "FINAL STATUS:" | grep -q "FAIL:"; then
+  if [[ $result5 -ne 1 ]] || ! echo "$output5" | grep -q "FAIL:.*local_test_fail" || ! echo "$output5" | grep -q "PASS: local_test_pass" || ! echo "$output5" | grep -A1 "FINAL STATUS:" | grep -q "FAIL:"; then
     echo "ERROR: Subtest 5 failed - unexpected result or output"
     echo "$output5"
     return 1

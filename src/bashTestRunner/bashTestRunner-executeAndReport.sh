@@ -1,13 +1,36 @@
 #!/usr/bin/env bash
 
-
 bashTestRunner-executeAndReport() {
+  # Validate parameters
+  if [[ $# -lt 4 ]]; then
+    echo "ERROR: bashTestRunner-executeAndReport requires at least 4 parameters" >&2
+    echo "Usage: bashTestRunner-executeAndReport <test_functions_array_name> <ignored_tests_array_name> <run_id> <testPwd> [excludes...]" >&2
+    return 1
+  fi
+
   local test_functions_ref_name=$1
   local ignored_tests_ref_name=$2
   local run_id=$3
   local testPwd=$4
   shift 4
   local excludes=("$@")
+
+  # Validate that array names are not empty
+  if [[ -z "$test_functions_ref_name" ]] || [[ -z "$ignored_tests_ref_name" ]] || [[ -z "$run_id" ]]; then
+    echo "ERROR: test_functions_ref_name, ignored_tests_ref_name, and run_id cannot be empty" >&2
+    return 1
+  fi
+
+  # Validate that the arrays exist
+  if ! declare -p "$test_functions_ref_name" &>/dev/null; then
+    echo "ERROR: Array '$test_functions_ref_name' does not exist" >&2
+    return 1
+  fi
+
+  if ! declare -p "$ignored_tests_ref_name" &>/dev/null; then
+    echo "ERROR: Array '$ignored_tests_ref_name' does not exist" >&2
+    return 1
+  fi
 
   # Get array references for inputs
   local -n test_functions_ref=${test_functions_ref_name}
@@ -21,6 +44,7 @@ bashTestRunner-executeAndReport() {
     echo "DEBUG: Current BASH_TEST_RUNNER_SESSION: ${BASH_TEST_RUNNER_SESSION:-unset}" >&2
     echo "DEBUG: Current BASH_TEST_RUNNER_LOG_NESTED: ${BASH_TEST_RUNNER_LOG_NESTED:-unset}" >&2
     echo "DEBUG: Current BASH_TEST_RUNNER_TEST_COUNTER: ${BASH_TEST_RUNNER_TEST_COUNTER:-unset}" >&2
+    echo "DEBUG: Current BASH_TEST_RUNNER_TEST_PATH: ${BASH_TEST_RUNNER_TEST_PATH:-unset}" >&2
   fi
 
   # Create uniquely named global arrays
@@ -38,6 +62,7 @@ bashTestRunner-executeAndReport() {
   local session_created_here=false
   local tail_pid
   local counter_initialized_here=false
+  local path_initialized_here=false
 
   if [[ -n "${BASH_TEST_RUNNER_SESSION}" ]]; then
     session_dir="${BASH_TEST_RUNNER_SESSION}"
@@ -62,10 +87,17 @@ bashTestRunner-executeAndReport() {
       export BASH_TEST_RUNNER_TEST_COUNTER=1
       counter_initialized_here=true
     fi
+    
+    if [[ -z "${BASH_TEST_RUNNER_TEST_PATH}" ]]; then
+      export BASH_TEST_RUNNER_TEST_PATH=""
+      path_initialized_here=true
+    fi
+    
     unset BASH_TEST_RUNNER_LOG_NESTED
     if [[ -n "$DEBUG" ]]; then
       echo "DEBUG: Top-level call, created new session: $session_dir" >&2
       echo "DEBUG: Initialized test counter to: $BASH_TEST_RUNNER_TEST_COUNTER" >&2
+      echo "DEBUG: Initialized test path to: '${BASH_TEST_RUNNER_TEST_PATH}'" >&2
     fi
   fi
 
@@ -111,6 +143,13 @@ bashTestRunner-executeAndReport() {
       unset BASH_TEST_RUNNER_TEST_COUNTER
       if [[ -n "$DEBUG" ]]; then
         echo "DEBUG: Cleaned up test counter" >&2
+      fi
+    fi
+    
+    if [[ "$path_initialized_here" == true ]]; then
+      unset BASH_TEST_RUNNER_TEST_PATH
+      if [[ -n "$DEBUG" ]]; then
+        echo "DEBUG: Cleaned up test path" >&2
       fi
     fi
   fi

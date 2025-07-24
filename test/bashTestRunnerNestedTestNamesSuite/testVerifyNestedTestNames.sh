@@ -16,10 +16,12 @@ testVerifyNestedTestNames() {
   # Save current environment variables
   local saved_session="${BASH_TEST_RUNNER_SESSION:-}"
   local saved_nested="${BASH_TEST_RUNNER_LOG_NESTED:-}"
+  local saved_path="${BASH_TEST_RUNNER_TEST_PATH:-}"
   
   # Clear environment to simulate top-level call
   unset BASH_TEST_RUNNER_SESSION
   unset BASH_TEST_RUNNER_LOG_NESTED
+  unset BASH_TEST_RUNNER_TEST_PATH
   
   # Capture output and result from running the outer bashTestRunner
   (
@@ -34,6 +36,9 @@ testVerifyNestedTestNames() {
   if [[ -n "$saved_nested" ]]; then
     export BASH_TEST_RUNNER_LOG_NESTED="$saved_nested"
   fi
+  if [[ -n "$saved_path" ]]; then
+    export BASH_TEST_RUNNER_TEST_PATH="$saved_path"
+  fi
   
   # Read the captured output
   local output=$(cat "$temp_output")
@@ -41,7 +46,7 @@ testVerifyNestedTestNames() {
   
   local errors=""
   
-  # Check for expected "Running test:" lines from outer level
+  # Check for expected "Running test:" lines from outer level (these should show simple names)
   if ! echo "$output" | grep -q "Running test: runSubSuiteA"; then
     errors+="ERROR: Output missing 'Running test: runSubSuiteA'\n"
   fi
@@ -50,17 +55,17 @@ testVerifyNestedTestNames() {
     errors+="ERROR: Output missing 'Running test: runSubSuiteB'\n"
   fi
   
-  # Check for expected "Running test:" lines from inner levels
-  if ! echo "$output" | grep -q "Running test: nested_innerAPass"; then
-    errors+="ERROR: Output missing 'Running test: nested_innerAPass'\n"
+  # Check for expected "Running test:" lines from inner levels with hierarchical paths
+  if ! echo "$output" | grep -q "Running test: runSubSuiteA->nested_innerAPass"; then
+    errors+="ERROR: Output missing 'Running test: runSubSuiteA->nested_innerAPass'\n"
   fi
   
-  if ! echo "$output" | grep -q "Running test: nested_innerAFail"; then
-    errors+="ERROR: Output missing 'Running test: nested_innerAFail'\n"
+  if ! echo "$output" | grep -q "Running test: runSubSuiteA->nested_innerAFail"; then
+    errors+="ERROR: Output missing 'Running test: runSubSuiteA->nested_innerAFail'\n"
   fi
   
-  if ! echo "$output" | grep -q "Running test: nested_innerBPass"; then
-    errors+="ERROR: Output missing 'Running test: nested_innerBPass'\n"
+  if ! echo "$output" | grep -q "Running test: runSubSuiteB->nested_innerBPass"; then
+    errors+="ERROR: Output missing 'Running test: runSubSuiteB->nested_innerBPass'\n"
   fi
   
   # Check for expected detailed results lines from inner levels
@@ -94,7 +99,7 @@ testVerifyNestedTestNames() {
     fi
     return 1
   else
-    echo "Nested test names displayed correctly"
+    echo "Nested test names displayed correctly with hierarchical paths"
     return 0
   fi
 }

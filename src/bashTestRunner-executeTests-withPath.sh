@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Copyright © 2025 Imre Toth <tothimre@gmail.com> - Proprietary Software. See LICENSE file for terms.
+
 bashTestRunner-executeTests() {
   local -n test_functions_ref=$1
   local -n ignored_tests_ref=$2
