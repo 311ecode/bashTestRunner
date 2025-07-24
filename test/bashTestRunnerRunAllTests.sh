@@ -20,6 +20,7 @@ bashTestRunnerRunAllTests() {
     "bashTestRunnerShuffleTestSuite"
     "bashTestRunnerSeedHuntingTestSuite"
     "bashTestRunnerHierarchicalFailureTestSuite"
+    "bashTestRunnerHierarchicalSeedHuntingTestSuite"
   )
   
   local ignored_suites=(

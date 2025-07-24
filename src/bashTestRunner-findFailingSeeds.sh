@@ -24,7 +24,7 @@ bashTestRunner-findFailingSeeds() {
   # Initialize/clear the files
   > "$failing_seeds_file"
   echo "# Test execution log - $(date)" >> "$execution_log_file"
-  echo "# Format: TIMESTAMP | SEED | STATUS | FAILED_TESTS | PASSED_TESTS | FAILING_TESTS" >> "$execution_log_file"
+  echo "# Format: TIMESTAMP | SEED | STATUS | FAILED_TESTS | PASSED_TESTS | FAILING_TESTS_WITH_PATHS" >> "$execution_log_file"
   
   local attempt=1
   local failing_seeds_found=0
@@ -47,10 +47,12 @@ bashTestRunner-findFailingSeeds() {
     # Save current environment to restore later
     local temp_session="${BASH_TEST_RUNNER_SESSION:-}"
     local temp_nested="${BASH_TEST_RUNNER_LOG_NESTED:-}"
+    local temp_path="${BASH_TEST_RUNNER_TEST_PATH:-}"
     
     # Clear environment for clean run
     unset BASH_TEST_RUNNER_SESSION
     unset BASH_TEST_RUNNER_LOG_NESTED
+    unset BASH_TEST_RUNNER_TEST_PATH
     
     # Run the test suite and capture result - show output in real-time
     local test_result
@@ -67,11 +69,14 @@ bashTestRunner-findFailingSeeds() {
     if [[ -n "$temp_nested" ]]; then
       export BASH_TEST_RUNNER_LOG_NESTED="$temp_nested"
     fi
+    if [[ -n "$temp_path" ]]; then
+      export BASH_TEST_RUNNER_TEST_PATH="$temp_path"
+    fi
     
     # Parse the results from the most recent session
     local failed_count=0
     local passed_count=0
-    local failing_tests=""
+    local failing_tests_with_paths=""
     
     # Find the most recent main.log by modification time
     local latest_main_log=$(find /tmp/bashTestRunnerSessions -name "main.log" -type f -printf '%T@ %p\n' 2>/dev/null | sort -rn | head -1 | cut -d' ' -f2-)
@@ -86,9 +91,15 @@ bashTestRunner-findFailingSeeds() {
         passed_count=$(echo "$last_summary" | grep "^Passed: " | awk '{print $2}' || echo 0)
       fi
       
-      # If failed, extract failing test names from the last detailed results
+      # If failed, extract failing test names WITH HIERARCHICAL PATHS from the detailed results
       if [[ $test_result -ne 0 ]]; then
-        failing_tests=$(echo "$last_summary" | grep '^ - FAIL: ' | sed 's/^ - FAIL: //' | sed 's/ (.*//' | head -3 | tr '\n' ',' | sed 's/,$//')
+        # Look for "FAIL: path->to->test" patterns in detailed results section
+        failing_tests_with_paths=$(echo "$last_summary" | grep '^ - FAIL: ' | sed 's/^ - FAIL: //' | sed 's/ (.*//' | head -3 | tr '\n' ',' | sed 's/,$//')
+        
+        # If no hierarchical paths found, fall back to regular FAIL lines in the main log
+        if [[ -z "$failing_tests_with_paths" ]]; then
+          failing_tests_with_paths=$(grep "^FAIL: " "$latest_main_log" | tail -3 | sed 's/^FAIL: //' | sed 's/ completed.*//' | tr '\n' ',' | sed 's/,$//')
+        fi
       fi
     fi
     
@@ -98,23 +109,26 @@ bashTestRunner-findFailingSeeds() {
       echo "$last_summary" >&2
       echo "DEBUG: Failed count: $failed_count" >&2
       echo "DEBUG: Passed count: $passed_count" >&2
-      echo "DEBUG: Failing tests: $failing_tests" >&2
+      echo "DEBUG: Failing tests with paths: $failing_tests_with_paths" >&2
     fi
     
-    # Log this execution
+    # Log this execution with enhanced path information
     local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
     local status="PASS"
     if [[ $test_result -ne 0 ]]; then
       status="FAIL"
     fi
     
-    echo "$timestamp | $random_seed | $status | $failed_count | $passed_count | $failing_tests" >> "$execution_log_file"
+    echo "$timestamp | $random_seed | $status | $failed_count | $passed_count | $failing_tests_with_paths" >> "$execution_log_file"
     
     # Report result
     echo ""
     echo "RESULT: $status (exit code: $test_result)"
     echo "Failed tests: $failed_count"
     echo "Passed tests: $passed_count"
+    if [[ -n "$failing_tests_with_paths" ]]; then
+      echo "Failing paths: $failing_tests_with_paths"
+    fi
     
     # If test failed, record the failing seed
     if [[ $test_result -ne 0 ]]; then
@@ -177,6 +191,12 @@ bashTestRunner-findFailingSeeds() {
     cat "$failing_seeds_file"
     echo ""
     echo "Use 'bashTestRunner <tests> <ignored> -r <seed>' to reproduce any of these failures"
+    echo ""
+    echo "📍 HIERARCHICAL FAILURE PATHS:"
+    echo "The execution log now shows full paths to failing tests, making debugging much easier!"
+    grep "FAIL" "$execution_log_file" | head -5 | while IFS='|' read -r ts seed status failed passed paths; do
+      echo "  Seed $seed: $paths"
+    done
   fi
   
   return $failing_seeds_found
