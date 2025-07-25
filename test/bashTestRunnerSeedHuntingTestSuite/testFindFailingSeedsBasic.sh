@@ -69,8 +69,8 @@ testFindFailingSeedsBasic() {
     return 1
   fi
   
-  # Check if we have execution entries
-  local execution_count=$(grep -c "|" "$temp_execution_log" || true)
+  # Check if we have execution entries (look for pipe-separated format)
+  local execution_count=$(grep -c " | " "$temp_execution_log" || true)
   if [[ $execution_count -eq 0 ]]; then
     echo "ERROR: No execution entries found in log"
     cleanup
@@ -78,27 +78,50 @@ testFindFailingSeedsBasic() {
     return 1
   fi
   
-  # Verify counters in at least one entry
-  local has_nonzero=false
-  while IFS="|" read -r ts seed status failed passed failing; do
-    failed=$(echo "$failed" | tr -d ' ')
-    passed=$(echo "$passed" | tr -d ' ')
-    if [[ "$failed" -gt 0 ]] || [[ "$passed" -gt 0 ]]; then
-      has_nonzero=true
-      break
+  # Verify entries have proper format (6 fields separated by 5 pipes)
+  local malformed_count=0
+  while IFS= read -r line; do
+    # Skip header and empty lines
+    if [[ "$line" =~ ^#.*$ ]] || [[ -z "$line" ]]; then
+      continue
     fi
-  done < <(grep "|" "$temp_execution_log")
+    
+    # Count pipe separators - should be exactly 5
+    local pipe_count=$(echo "$line" | tr -cd '|' | wc -c)
+    if [[ $pipe_count -ne 5 ]]; then
+      ((malformed_count++))
+    fi
+  done < "$temp_execution_log"
   
-  if ! $has_nonzero; then
-    echo "ERROR: All log entries have zero counters"
+  if [[ $malformed_count -gt 0 ]]; then
+    echo "ERROR: Found $malformed_count malformed log entries"
     if [[ -n "$DEBUG" ]]; then
       echo "DEBUG: Execution log content:" >&2
       cat "$temp_execution_log" >&2
-      local latest_main_log=$(find /tmp/bashTestRunnerSessions -name "main.log" -type f -printf '%T@ %p\n' 2>/dev/null | sort -rn | head -1 | cut -d' ' -f2-)
-      if [[ -n "$latest_main_log" ]]; then
-        echo "DEBUG: Latest main log content:" >&2
-        cat "$latest_main_log" >&2
+    fi
+    cleanup
+    rm -f "$temp_failing_seeds" "$temp_execution_log"
+    return 1
+  fi
+  
+  # Verify counters in at least one entry
+  local has_nonzero=false
+  while IFS='|' read -r ts seed status failed passed failing; do
+    failed=$(echo "$failed" | tr -d ' ')
+    passed=$(echo "$passed" | tr -d ' ')
+    if [[ "$failed" =~ ^[0-9]+$ && "$passed" =~ ^[0-9]+$ ]]; then
+      if [[ "$failed" -gt 0 ]] || [[ "$passed" -gt 0 ]]; then
+        has_nonzero=true
+        break
       fi
+    fi
+  done < <(grep " | " "$temp_execution_log")
+  
+  if ! $has_nonzero; then
+    echo "ERROR: All log entries have zero or invalid counters"
+    if [[ -n "$DEBUG" ]]; then
+      echo "DEBUG: Execution log content:" >&2
+      cat "$temp_execution_log" >&2
     fi
     cleanup
     rm -f "$temp_failing_seeds" "$temp_execution_log"

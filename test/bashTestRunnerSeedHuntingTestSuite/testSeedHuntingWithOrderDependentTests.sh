@@ -78,7 +78,7 @@ testSeedHuntingWithOrderDependentTests() {
   
   # The hunt should find some failing seeds since our tests are order-dependent
   local failing_seed_count=$(wc -l < "$temp_failing_seeds" 2>/dev/null || echo 0)
-  local execution_entries=$(grep -c "|" "$temp_execution_log" || echo 0)
+  local execution_entries=$(grep -c " | " "$temp_execution_log" || echo 0)
   
   echo "Order-dependent seed hunting completed"
   echo "Total executions: $execution_entries"
@@ -92,51 +92,67 @@ testSeedHuntingWithOrderDependentTests() {
     return 1
   fi
   
-  # Verify counters and failing names
+  # Verify entries have proper format and valid counters
   local has_counters=false
   local has_failing_names=false
-  while IFS="|" read -r ts seed status failed passed failing; do
+  
+  while IFS='|' read -r ts seed status failed passed failing_paths; do
+    # Skip header lines
+    if [[ "$ts" =~ ^#.*$ ]]; then
+      continue
+    fi
+    
+    # Clean up fields
     failed=$(echo "$failed" | tr -d ' ')
     passed=$(echo "$passed" | tr -d ' ')
-    failing=$(echo "$failing" | tr -d ' ')
-    if [[ "$failed" -gt 0 ]] || [[ "$passed" -gt 0 ]]; then
-      has_counters=true
+    status=$(echo "$status" | tr -d ' ')
+    failing_paths=$(echo "$failing_paths" | sed 's/^[ \t]*//;s/[ \t]*$//')
+    
+    # Check for valid numeric counters
+    if [[ "$failed" =~ ^[0-9]+$ && "$passed" =~ ^[0-9]+$ ]]; then
+      if [[ "$failed" -gt 0 ]] || [[ "$passed" -gt 0 ]]; then
+        has_counters=true
+      fi
     fi
-    if [[ "$status" == "FAIL" && -n "$failing" ]]; then
+    
+    # Check for failing test names/paths when status is FAIL
+    if [[ "$status" == "FAIL" && -n "$failing_paths" ]]; then
       has_failing_names=true
+      echo "Found failing paths: $failing_paths"
+      
+      # Check if paths contain our test names (either simple or hierarchical)
+      if [[ "$failing_paths" == *"orderTest"* ]]; then
+        echo "  Contains expected test pattern: orderTest*"
+      fi
     fi
-  done < <(grep "|" "$temp_execution_log")
+  done < "$temp_execution_log"
   
   if ! $has_counters; then
-    echo "ERROR: No log entries have non-zero counters"
+    echo "ERROR: No log entries have valid non-zero counters"
     if [[ -n "$DEBUG" ]]; then
       echo "DEBUG: Execution log content:" >&2
       cat "$temp_execution_log" >&2
-      local latest_main_log=$(find /tmp/bashTestRunnerSessions -name "main.log" -type f -printf '%T@ %p\n' 2>/dev/null | sort -rn | head -1 | cut -d' ' -f2-)
-      if [[ -n "$latest_main_log" ]]; then
-        echo "DEBUG: Latest main log content:" >&2
-        cat "$latest_main_log" >&2
-      fi
     fi
     cleanup
     rm -f "$temp_failing_seeds" "$temp_execution_log"
     return 1
   fi
   
+  # If we have failing seeds, we should have failing test names/paths
   if [[ $failing_seed_count -gt 0 ]] && ! $has_failing_names; then
-    echo "ERROR: Failing runs missing failing test names in log"
+    echo "ERROR: Failing runs found but missing failing test names in log"
     if [[ -n "$DEBUG" ]]; then
       echo "DEBUG: Execution log content:" >&2
       cat "$temp_execution_log" >&2
-      local latest_main_log=$(find /tmp/bashTestRunnerSessions -name "main.log" -type f -printf '%T@ %p\n' 2>/dev/null | sort -rn | head -1 | cut -d' ' -f2-)
-      if [[ -n "$latest_main_log" ]]; then
-        echo "DEBUG: Latest main log content:" >&2
-        cat "$latest_main_log" >&2
-      fi
     fi
     cleanup
     rm -f "$temp_failing_seeds" "$temp_execution_log"
     return 1
+  fi
+  
+  echo "SUCCESS: Seed hunting completed with valid format and counters"
+  if [[ $has_failing_names ]]; then
+    echo "SUCCESS: Found failing test names/paths in failure entries"
   fi
   
   # Test reproducing one of the failing seeds if we found any

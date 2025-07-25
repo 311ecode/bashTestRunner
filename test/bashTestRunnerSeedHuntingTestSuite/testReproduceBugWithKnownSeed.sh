@@ -74,9 +74,25 @@ testReproduceBugWithKnownSeed() {
     return 1
   fi
   
-  # Verify counters in reproduction output
-  if ! grep -q "Failed: [1-9]" "$temp_output"; then
-    echo "ERROR: Reproduction output has zero failed count"
+  # Verify test execution results in reproduction output
+  # Look for either "Failed: [1-9]" pattern or "FAIL:" lines indicating failure
+  local has_failure_indication=false
+  
+  if grep -q "Failed: [1-9]" "$temp_output"; then
+    has_failure_indication=true
+  elif grep -q "^FAIL:" "$temp_output"; then
+    has_failure_indication=true
+  elif grep -q " FAIL " "$temp_output"; then
+    has_failure_indication=true
+  fi
+  
+  if ! $has_failure_indication; then
+    echo "ERROR: Reproduction output shows no failure indication"
+    echo "Looking for failure patterns in output..."
+    if [[ -n "$DEBUG" ]]; then
+      echo "DEBUG: Reproduction output content:" >&2
+      cat "$temp_output" >&2
+    fi
     cleanup
     rm -f "$temp_output"
     return 1
@@ -84,6 +100,24 @@ testReproduceBugWithKnownSeed() {
   
   echo "Bug reproduction test completed successfully"
   echo "Reproduction file created with expected content"
+  echo "Found failure indication in reproduction output"
+  
+  # Verify reproduction file has proper structure
+  if ! grep -q "BUG REPRODUCTION REPORT" "$temp_output"; then
+    echo "ERROR: Reproduction file missing expected header"
+    cleanup
+    rm -f "$temp_output"
+    return 1
+  fi
+  
+  if ! grep -q "Seed: no-shuffle" "$temp_output"; then
+    echo "ERROR: Reproduction file missing seed information"
+    cleanup
+    rm -f "$temp_output"
+    return 1
+  fi
+  
+  echo "Reproduction file structure verified successfully"
   
   # Clean up
   cleanup

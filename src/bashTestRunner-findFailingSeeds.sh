@@ -83,30 +83,67 @@ bashTestRunner-findFailingSeeds() {
     if [[ -n "$latest_main_log" ]]; then
       local latest_session_dir=$(dirname "$latest_main_log")
       
-      # Extract the last TEST SUMMARY content
-      local last_summary=$(tail -n 500 "$latest_main_log" | sed -n '/^TEST SUMMARY$/,/^=+$/p' | tail -n +3 | head -n -1)
+      # Extract counts from the TEST SUMMARY section - look for the last summary
+      local summary_start=$(grep -n "^TEST SUMMARY$" "$latest_main_log" | tail -1 | cut -d: -f1)
       
-      if [[ -n "$last_summary" ]]; then
-        failed_count=$(echo "$last_summary" | grep "^Failed: " | awk '{print $2}' || echo 0)
-        passed_count=$(echo "$last_summary" | grep "^Passed: " | awk '{print $2}' || echo 0)
+      if [[ -n "$summary_start" ]]; then
+        # Get lines after "TEST SUMMARY" until next ====== line
+        local summary_section=$(tail -n +$((summary_start + 2)) "$latest_main_log" | sed '/^======================================$/q' | head -n -1)
+        
+        if [[ -n "$summary_section" ]]; then
+          # Look for the actual count lines in the summary
+          local passed_line=$(echo "$summary_section" | grep "^Passed: " | head -1)
+          local failed_line=$(echo "$summary_section" | grep "^Failed: " | head -1)
+          
+          if [[ -n "$passed_line" ]]; then
+            passed_count=$(echo "$passed_line" | awk '{print $2}')
+          fi
+          
+          if [[ -n "$failed_line" ]]; then
+            failed_count=$(echo "$failed_line" | awk '{print $2}')
+          fi
+        fi
       fi
       
-      # If failed, extract failing test names WITH HIERARCHICAL PATHS from the detailed results
-      if [[ $test_result -ne 0 ]]; then
-        # Look for "FAIL: path->to->test" patterns in detailed results section
-        failing_tests_with_paths=$(echo "$last_summary" | grep '^ - FAIL: ' | sed 's/^ - FAIL: //' | sed 's/ (.*//' | head -3 | tr '\n' ',' | sed 's/,$//')
+      # Fallback: if we didn't get counts from summary, try to count from the log directly
+      if [[ "$passed_count" -eq 0 && "$failed_count" -eq 0 ]]; then
+        # Count PASS and FAIL lines in the main log (excluding IGNORED)
+        local pass_lines=$(grep "^PASS: " "$latest_main_log" | wc -l)
+        local fail_lines=$(grep "^FAIL: " "$latest_main_log" | wc -l)
         
-        # If no hierarchical paths found, fall back to regular FAIL lines in the main log
-        if [[ -z "$failing_tests_with_paths" ]]; then
-          failing_tests_with_paths=$(grep "^FAIL: " "$latest_main_log" | tail -3 | sed 's/^FAIL: //' | sed 's/ completed.*//' | tr '\n' ',' | sed 's/,$//')
+        if [[ $pass_lines -gt 0 || $fail_lines -gt 0 ]]; then
+          passed_count=$pass_lines
+          failed_count=$fail_lines
+        fi
+      fi
+      
+      # Extract hierarchical failure paths directly from FAIL: lines in main log
+      if [[ $test_result -ne 0 ]]; then
+        # Look for "FAIL: path" lines, preserving full hierarchical paths
+        local fail_lines=$(grep "^FAIL: " "$latest_main_log" | head -5)
+        
+        if [[ -n "$fail_lines" ]]; then
+          # Extract just the path portion (before " completed in")
+          local paths=()
+          while IFS= read -r line; do
+            if [[ "$line" =~ ^FAIL:\ (.*)\ completed\ in ]]; then
+              paths+=("${BASH_REMATCH[1]}")
+            fi
+          done <<< "$fail_lines"
+          
+          # Join paths with comma
+          local IFS=','
+          failing_tests_with_paths="${paths[*]}"
         fi
       fi
     fi
     
+    # Ensure we have valid numeric values
+    [[ "$failed_count" =~ ^[0-9]+$ ]] || failed_count=0
+    [[ "$passed_count" =~ ^[0-9]+$ ]] || passed_count=0
+    
     if [[ -n "$DEBUG" ]]; then
       echo "DEBUG: Latest main log: $latest_main_log" >&2
-      echo "DEBUG: Last summary:" >&2
-      echo "$last_summary" >&2
       echo "DEBUG: Failed count: $failed_count" >&2
       echo "DEBUG: Passed count: $passed_count" >&2
       echo "DEBUG: Failing tests with paths: $failing_tests_with_paths" >&2
@@ -119,7 +156,8 @@ bashTestRunner-findFailingSeeds() {
       status="FAIL"
     fi
     
-    echo "$timestamp | $random_seed | $status | $failed_count | $passed_count | $failing_tests_with_paths" >> "$execution_log_file"
+    # Create a single, properly formatted log line
+    printf "%s | %s | %s | %d | %d | %s\n" "$timestamp" "$random_seed" "$status" "$failed_count" "$passed_count" "$failing_tests_with_paths" >> "$execution_log_file"
     
     # Report result
     echo ""
@@ -195,7 +233,10 @@ bashTestRunner-findFailingSeeds() {
     echo "📍 HIERARCHICAL FAILURE PATHS:"
     echo "The execution log now shows full paths to failing tests, making debugging much easier!"
     grep "FAIL" "$execution_log_file" | head -5 | while IFS='|' read -r ts seed status failed passed paths; do
-      echo "  Seed $seed: $paths"
+      paths=$(echo "$paths" | sed 's/^[ \t]*//;s/[ \t]*$//')  # trim whitespace
+      if [[ -n "$paths" ]]; then
+        echo "  Seed $(echo "$seed" | sed 's/^[ \t]*//;s/[ \t]*$//'): $paths"
+      fi
     done
   fi
   
