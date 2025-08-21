@@ -20,26 +20,26 @@ testIgnoredFail() {
 # Main test function
 testExecuteAndReportFunction() {
   echo "Testing bashTestRunner-executeAndReport function directly"
-  
+
   # Define test arrays
   local test_functions=("testPass" "testFail" "testIgnoredFail")
   local ignored_tests=("testIgnoredFail")
-  
+
   # Generate unique run ID
   local run_id=$(date +%s%N | sha256sum | head -c 8)
   local test_pwd="$(pwd)"
-  
+
   echo "Calling bashTestRunner-executeAndReport with:"
   echo "  test_functions: ${test_functions[*]}"
   echo "  ignored_tests: ${ignored_tests[*]}"
   echo "  run_id: $run_id"
   echo "  test_pwd: $test_pwd"
   echo ""
-  
+
   # Call the function properly
   bashTestRunner-executeAndReport test_functions ignored_tests "$run_id" "$test_pwd"
   local result=$?
-  
+
   echo ""
   echo "Function returned: $result"
   return $result

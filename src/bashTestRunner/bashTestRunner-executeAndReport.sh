@@ -87,12 +87,12 @@ bashTestRunner-executeAndReport() {
       export BASH_TEST_RUNNER_TEST_COUNTER=1
       counter_initialized_here=true
     fi
-    
+
     if [[ -z "${BASH_TEST_RUNNER_TEST_PATH}" ]]; then
       export BASH_TEST_RUNNER_TEST_PATH=""
       path_initialized_here=true
     fi
-    
+
     unset BASH_TEST_RUNNER_LOG_NESTED
     if [[ -n "$DEBUG" ]]; then
       echo "DEBUG: Top-level call, created new session: $session_dir" >&2
@@ -145,7 +145,7 @@ bashTestRunner-executeAndReport() {
         echo "DEBUG: Cleaned up test counter" >&2
       fi
     fi
-    
+
     if [[ "$path_initialized_here" == true ]]; then
       unset BASH_TEST_RUNNER_TEST_PATH
       if [[ -n "$DEBUG" ]]; then

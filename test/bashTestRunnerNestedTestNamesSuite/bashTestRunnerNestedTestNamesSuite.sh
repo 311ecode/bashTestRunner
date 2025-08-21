@@ -6,13 +6,13 @@
 bashTestRunnerNestedTestNamesSuite() {
   # Fix for localization issue with decimal points
   export LC_NUMERIC=C
-  
+
   local test_functions=(
     "testVerifyNestedTestNames"
   )
-  
+
   local ignored_tests=()
-  
+
   # Run the test suite
   bashTestRunner test_functions ignored_tests
   return $?

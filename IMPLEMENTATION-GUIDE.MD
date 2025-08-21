@@ -83,12 +83,12 @@ fi
 **Must-Do**: Set `LC_NUMERIC=C` for consistent numeric formatting. Avoid locale surprises! 😱
 
 **Options**:
-1. **Export for All** (Recommended for multi-ops):  
+1. **Export for All** (Recommended for multi-ops):
    ```bash
    export LC_NUMERIC=C
    bashTestRunner test_functions ignored_tests
    ```
-2. **One-Off**:  
+2. **One-Off**:
    ```bash
    LC_NUMERIC=C bashTestRunner test_functions ignored_tests
    ```

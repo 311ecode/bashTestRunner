@@ -4,14 +4,14 @@
 
 bashTestRunnerHierarchicalSeedHuntingTestSuite() {
   export LC_NUMERIC=C
-  
+
   local test_functions=(
     "testHierarchicalSeedHuntingReporting"
     "testHierarchicalReproductionReporting"
   )
-  
+
   local ignored_tests=()
-  
+
   bashTestRunner test_functions ignored_tests
   return $?
 }

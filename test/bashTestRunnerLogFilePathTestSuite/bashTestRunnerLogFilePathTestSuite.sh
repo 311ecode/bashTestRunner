@@ -6,21 +6,21 @@
 bashTestRunnerLogFilePathTestSuite() {
   # Fix for localization issue with decimal points
   export LC_NUMERIC=C
-  
+
   local test_functions=(
     "testLogFilePathSimplePass"
-    "testLogFilePathSimpleFail"  
+    "testLogFilePathSimpleFail"
     "testLogFilePathNestedCall"
     "testVerifyTopLevelLogPath"
     "testVerifyNestedLogPath"
     "testVerifyDeeplyNestedLogPath"
     "testVerifyIgnoredLogFileNaming"
   )
-  
+
   local ignored_tests=(
     "testLogFilePathSimpleFail"  # Ignore the failing test
   )
-  
+
   # Run the test suite
   bashTestRunner test_functions ignored_tests
   return $?

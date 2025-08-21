@@ -4,7 +4,7 @@
 bashTestRunnerRunAllTests() {
   # Fix for localization issue with decimal points
   export LC_NUMERIC=C
-  
+
   # Define test functions (our test suites)
   local test_suites=(
     "bashTestRunnerBasicTestSuite"
@@ -23,11 +23,11 @@ bashTestRunnerRunAllTests() {
     "bashTestRunnerHierarchicalSeedHuntingTestSuite"
     "bashTestRunnerSeedExtractionTestSuite"
   )
-  
+
   local ignored_suites=(
     # None of the test suites are ignored by default
   )
-  
+
   # Run bashTestRunner to execute all test suites, forwarding any command line arguments
   bashTestRunner test_suites ignored_suites "$@"
   return $?

@@ -4,17 +4,17 @@
 
 bashTestRunnerSeedHuntingTestSuite() {
   export LC_NUMERIC=C
-  
+
   local test_functions=(
     "testFindFailingSeedsBasic"
     "testReproduceBugWithKnownSeed"
     "testSeedHuntingWithOrderDependentTests"
   )
-  
+
   local ignored_tests=(
     testSeedHuntingWithOrderDependentTests
   )
-  
+
   bashTestRunner test_functions ignored_tests
   return $?
 }

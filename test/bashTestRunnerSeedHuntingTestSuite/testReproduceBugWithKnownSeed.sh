@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 testReproduceBugWithKnownSeed() {
   echo "Testing bug reproduction with a known problematic seed"
-  
+
   # Create test functions where order matters
   statefulTestSetup() {
     echo "Setting up test state"
     echo "setup_done" > "/tmp/test-repro-state"
     return 0
   }
-  
+
   statefulTestCheck() {
     if [[ -f "/tmp/test-repro-state" && "$(cat /tmp/test-repro-state)" == "setup_done" ]]; then
       echo "State check passed"
@@ -18,47 +18,47 @@ testReproduceBugWithKnownSeed() {
       return 1
     fi
   }
-  
+
   cleanup() {
     rm -f "/tmp/test-repro-state"
   }
-  
+
   # Clean up before test
   cleanup
-  
+
   local test_functions=("statefulTestCheck" "statefulTestSetup")  # Intentionally wrong order
   local ignored_tests=()
-  
+
   # Save current environment
   local saved_session="${BASH_TEST_RUNNER_SESSION:-}"
   local saved_nested="${BASH_TEST_RUNNER_LOG_NESTED:-}"
   local saved_seed="${BASH_TEST_RUNNER_SEED:-}"
-  
+
   # Clear environment
   unset BASH_TEST_RUNNER_SESSION
   unset BASH_TEST_RUNNER_LOG_NESTED
   unset BASH_TEST_RUNNER_SEED
-  
+
   # Create temp file for reproduction output
   local temp_output=$(mktemp)
-  
+
   # Test reproduction with a seed that should cause this order (we'll use "original" to mean no shuffle)
   local result
   bashTestRunner-reproduceBug test_functions ignored_tests "no-shuffle" "$temp_output" > /dev/null 2>&1
   result=$?
-  
+
   # Restore environment
   if [[ -n "$saved_session" ]]; then export BASH_TEST_RUNNER_SESSION="$saved_session"; fi
   if [[ -n "$saved_nested" ]]; then export BASH_TEST_RUNNER_LOG_NESTED="$saved_nested"; fi
   if [[ -n "$saved_seed" ]]; then export BASH_TEST_RUNNER_SEED="$saved_seed"; fi
-  
+
   # Check if reproduction file was created
   if [[ ! -f "$temp_output" ]]; then
     echo "ERROR: Reproduction output file was not created"
     cleanup
     return 1
   fi
-  
+
   # Check if the reproduction file contains expected content
   if ! grep -q "BUG REPRODUCTION REPORT" "$temp_output"; then
     echo "ERROR: Reproduction file missing expected header"
@@ -66,18 +66,18 @@ testReproduceBugWithKnownSeed() {
     rm -f "$temp_output"
     return 1
   fi
-  
+
   if ! grep -q "Seed: no-shuffle" "$temp_output"; then
     echo "ERROR: Reproduction file missing seed information"
     cleanup
     rm -f "$temp_output"
     return 1
   fi
-  
+
   # Verify test execution results in reproduction output
   # Look for either "Failed: [1-9]" pattern or "FAIL:" lines indicating failure
   local has_failure_indication=false
-  
+
   if grep -q "Failed: [1-9]" "$temp_output"; then
     has_failure_indication=true
   elif grep -q "^FAIL:" "$temp_output"; then
@@ -85,7 +85,7 @@ testReproduceBugWithKnownSeed() {
   elif grep -q " FAIL " "$temp_output"; then
     has_failure_indication=true
   fi
-  
+
   if ! $has_failure_indication; then
     echo "ERROR: Reproduction output shows no failure indication"
     echo "Looking for failure patterns in output..."
@@ -97,11 +97,11 @@ testReproduceBugWithKnownSeed() {
     rm -f "$temp_output"
     return 1
   fi
-  
+
   echo "Bug reproduction test completed successfully"
   echo "Reproduction file created with expected content"
   echo "Found failure indication in reproduction output"
-  
+
   # Verify reproduction file has proper structure
   if ! grep -q "BUG REPRODUCTION REPORT" "$temp_output"; then
     echo "ERROR: Reproduction file missing expected header"
@@ -109,19 +109,19 @@ testReproduceBugWithKnownSeed() {
     rm -f "$temp_output"
     return 1
   fi
-  
+
   if ! grep -q "Seed: no-shuffle" "$temp_output"; then
     echo "ERROR: Reproduction file missing seed information"
     cleanup
     rm -f "$temp_output"
     return 1
   fi
-  
+
   echo "Reproduction file structure verified successfully"
-  
+
   # Clean up
   cleanup
   rm -f "$temp_output"
-  
+
   return 0
 }

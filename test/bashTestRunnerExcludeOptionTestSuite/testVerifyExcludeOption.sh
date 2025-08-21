@@ -2,21 +2,21 @@
 # Copyright © 2025 Imre Toth <tothimre@gmail.com> - Proprietary Software. See LICENSE file for terms.
 testVerifyExcludeOption() {
   echo "Verifying --exclude option functionality with multiple scenarios"
-  
+
   # Define local test functions for verification
   local_test_pass() {
     echo "Local passing test"
     return 0
   }
-  
+
   local_test_fail() {
     echo "Local failing test"
     return 1
   }
-  
+
   # Common setup: test functions array
   local test_funcs=("local_test_pass" "local_test_fail")
-  
+
   # Subtest 1: No exclude, no ignored - expect failure due to local_test_fail
   echo "Subtest 1: No exclude, expect overall failure"
   local ignored1=()
@@ -42,7 +42,7 @@ testVerifyExcludeOption() {
     return 1
   fi
   echo "Subtest 1 passed"
-  
+
   # Subtest 2: Exclude the failing test - expect success, ignored fail
   echo "Subtest 2: Exclude failing test, expect overall success"
   local ignored2=()
@@ -68,7 +68,7 @@ testVerifyExcludeOption() {
     return 1
   fi
   echo "Subtest 2 passed"
-  
+
   # Subtest 3: Exclude the passing test - expect failure due to local_test_fail
   echo "Subtest 3: Exclude passing test, expect overall failure"
   local ignored3=()
@@ -94,7 +94,7 @@ testVerifyExcludeOption() {
     return 1
   fi
   echo "Subtest 3 passed"
-  
+
   # Subtest 4: Pre-ignored failing, exclude passing - expect success (both ignored)
   echo "Subtest 4: Pre-ignored failing, exclude passing, expect success"
   local ignored4=("local_test_fail")
@@ -120,7 +120,7 @@ testVerifyExcludeOption() {
     return 1
   fi
   echo "Subtest 4 passed"
-  
+
   # Subtest 5: Exclude non-existing test - expect no error, same as no exclude
   echo "Subtest 5: Exclude non-existing test, expect no error and overall failure"
   local ignored5=()
@@ -146,7 +146,7 @@ testVerifyExcludeOption() {
     return 1
   fi
   echo "Subtest 5 passed"
-  
+
   echo "All --exclude subtests passed successfully"
   return 0
 }

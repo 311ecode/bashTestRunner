@@ -4,16 +4,16 @@
 
 bashTestRunnerSeedExtractionTestSuite() {
   export LC_NUMERIC=C
-  
+
   local test_functions=(
     "testHierarchicalPathExtractionBasic"
     "testExecutionLogFormatConsistency"
     "testDeepNestingPathExtraction"
     "testMixedPassFailPathExtraction"
   )
-  
+
   local ignored_tests=()
-  
+
   bashTestRunner test_functions ignored_tests
   return $?
 }

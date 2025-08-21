@@ -4,11 +4,11 @@ runSubSuiteA() {
     "nested_innerAPass"
     "nested_innerAFail"
   )
-  
+
   local ignored_tests=(
     "nested_innerAFail"
   )
-  
+
   bashTestRunner test_functions ignored_tests
   return $?
 }

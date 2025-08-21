@@ -6,16 +6,16 @@
 bashTestRunnerTrapExitTestSuite() {
   # Fix for localization issue with decimal points
   export LC_NUMERIC=C
-    
+
   local test_functions=(
     "bashTestRunnerTrapExitTestSuiteTrapExitPass"
     "bashTestRunnerTrapExitTestSuiteTrapExitFail"
   )
-  
+
   local ignored_tests=(
     "bashTestRunnerTrapExitTestSuiteTrapExitFail"  # Ignoring the failing test
   )
-  
+
   # Run the test suite
   bashTestRunner test_functions ignored_tests
   return $?

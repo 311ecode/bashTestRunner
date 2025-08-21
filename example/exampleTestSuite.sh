@@ -17,10 +17,10 @@ exampleTestSuite() {
     "testExample1"
     "testExample2"
   )
-  
+
   local ignored_tests=(
     "testExample2"
   )
-  
+
   bashTestRunner test_functions ignored_tests
 }
