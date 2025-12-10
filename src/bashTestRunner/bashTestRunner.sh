@@ -4,7 +4,7 @@
 export LC_NUMERIC=C
 
 bashTestRunner() {
-    command -v markdown-show-help-registration &>/dev/null && eval "$(markdown-show-help-registration)"
+  command -v markdown-show-help-registration &>/dev/null && eval "$(markdown-show-help-registration)"
   # Parse options and positionals
   local excludes=()
   local positionals=()
